@@ -299,6 +299,56 @@ body[data-wind="T"] .amb-T, body[data-wind="L"] .amb-L, body[data-wind="M"] .amb
 .lob-teams h4 { margin: 0 0 4px; font-family: var(--f-display); font-size: 16px; color: var(--foam-dim); }
 .lob-free { color: var(--foam-dim); font-style: italic; }
 .lob-card .btn[disabled] { opacity: .45; cursor: default; }
+/* ---- móvil: mesa compacta, mano fija abajo junto al botón de jugar ---- */
+@media (hover: none) { .card-btn:hover { transform: none; } .card-btn.sel { transform: translateY(-12px); } }
+@media (max-width: 600px) {
+  :root { --cw: min(64px, calc((100vw - 60px) / 6)); --bw: 46px; --ow: 22px; }
+  .wrap { gap: 10px; grid-template-columns: minmax(0, 1fr); }
+  #game header > * { min-width: 0; }
+  #game { padding-bottom: 8px; }
+  #game header { gap: 8px; }
+  #game .brand { gap: 2px 10px; }
+  #game .brand h1 { font-size: 24px; }
+  #game .brand span { font-size: 10.5px; letter-spacing: .05em; }
+  #game .hbtns { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; box-sizing: border-box; width: calc(100% + 32px); max-width: none; margin: 0 -16px; padding: 2px 16px; }
+  #game .hbtns::-webkit-scrollbar { display: none; }
+  #game .hbtns .btn { flex: none; padding: 6px 11px; font-size: 12.5px; }
+  .strip { padding: 9px 11px; gap: 6px 10px; border-radius: 14px; }
+  .who { gap: 6px 8px; }
+  .who b { font-size: 18px; }
+  .score { font-size: 21px; }
+  .score small { font-size: 9.5px; }
+  .basket { gap: 4px; }
+  .strip { position: relative; grid-template-columns: minmax(0, 1fr); }
+  .strip .score { position: absolute; top: 9px; right: 11px; }
+  .chip { flex: none; white-space: nowrap; }
+  .strip .who > .pl, .strip .who > .partner { flex-basis: calc(100% - 118px); }
+  .strip .who > b:first-child { margin-right: 118px; }
+  .strip .who > .bpile { position: absolute; top: 9px; right: 74px; margin: 0; }
+  .strip .who > .basket { flex-basis: 100%; }
+  .strip .who > b:first-child, .strip .who > .pl, .strip .who > .partner { min-height: 40px; display: flex; align-items: center; }
+  .chip { padding: 2px 5px 2px 2px; font-size: 10.5px; gap: 3px; }
+  .chip i { width: 11px; height: 11px; }
+  .basket { flex-wrap: wrap; }
+  .mesa { padding: 10px; gap: 10px; }
+  .table { gap: 10px; }
+  .compassbox .compass, .compassbox .compass-wrap { width: 84px; height: 84px; }
+  .windname { font-size: 19px; }
+  .windrule { font-size: 12.5px; }
+  .arena { padding: 10px; gap: 10px; }
+  .status { gap: 8px; }
+  .status h2 { font-size: 19px; }
+  .status p { font-size: 13px; }
+  /* orden: tu mano justo debajo de la mesa (y del botón «Jugar carta»), tu marcador después */
+  #game > .strip[aria-label="Tu equipo"] { order: 2; }
+  #game > details.log { order: 3; }
+  .hand { position: sticky; bottom: 0; z-index: 6; flex-wrap: nowrap; justify-content: safe center; gap: 6px;
+    margin: 0 -16px; padding: 18px 12px calc(10px + env(safe-area-inset-bottom, 0px)); overflow-x: auto; scrollbar-width: none;
+    background: linear-gradient(to top, rgba(6,28,44,.98) 0%, rgba(6,28,44,.95) 78%, rgba(6,28,44,0) 100%); }
+  .hand::-webkit-scrollbar { display: none; }
+  .hand .card-btn { flex: none; }
+}
+@media (max-width: 380px) { #game .brand span { display: none; } }
 </style>
 <div id="ambient" aria-hidden="true"><i class="amb amb-T"></i><i class="amb amb-L"></i><i class="amb amb-M"></i><i class="amb amb-P"></i><div id="streaks"></div></div>
 <div id="storm" hidden aria-hidden="true"></div>

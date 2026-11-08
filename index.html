@@ -54,6 +54,7 @@ h1, h2, h3 { font-family: var(--f-d); font-weight: 800; line-height: 1.05; margi
 .nav a { color: var(--dim); text-decoration: none; font-weight: 600; font-size: 15px; }
 .nav a:hover { color: var(--foam); }
 .nav .btn { min-height: 38px; padding: 6px 16px; font-size: 15px; }
+.nav .btn { white-space: nowrap; }
 @media (max-width: 640px) { .nav a:not(.btn) { display: none; } }
 /* hero */
 .hero { position: relative; overflow: hidden; background: radial-gradient(80% 60% at 70% 30%, #1A5F86 0%, var(--sea) 45%, var(--deep) 100%); }
@@ -63,6 +64,7 @@ h1, h2, h3 { font-family: var(--f-d); font-weight: 800; line-height: 1.05; margi
 .hero h1 em { font-style: normal; color: var(--gold); }
 .hero p.lead { font-size: clamp(17px, 2vw, 20px); color: var(--dim); max-width: 46ch; margin: 0 0 26px; }
 .ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 480px) { .hero .ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .hero .ctas .btn { padding: 10px 12px; font-size: 16px; } .hero .ctas .btn:last-child { grid-column: 1 / -1; } .fis-pill { font-size: 14px; } .phone { width: min(250px, 66vw); } }
 .facts { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 26px; color: var(--dim); font-size: 15px; font-weight: 600; }
 .facts b { color: var(--foam); font-family: var(--f-d); font-size: 22px; display: block; }
 .phone { justify-self: center; width: min(320px, 78vw); aspect-ratio: 9/16; border-radius: 34px; padding: 10px; background: #050608; box-shadow: 0 30px 80px rgba(0,0,0,.5), 0 0 0 2px rgba(239,232,214,.12); position: relative; }
