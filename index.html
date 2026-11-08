@@ -262,6 +262,11 @@ nf.onsubmit = async e => {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length >= 120) { msg.textContent = 'Revisa el email, parece que no es correcto.'; return; }
   if (!document.getElementById('nf-ok').checked) { msg.textContent = 'Marca la casilla para poder avisarte.'; return; }
   msg.textContent = 'Enviando…';
+  // Brevo: lista «Edición física» + email de bienvenida (best effort, no bloquea)
+  try {
+    const fd = new FormData(); fd.append('EMAIL', email.toLowerCase()); fd.append('email_address_check', ''); fd.append('locale', 'es');
+    fetch('https://25226fa7.sibforms.com/serve/MUIFABqaQxWTBK5Tc-J_xHfm6Fx0QXrbrbUiZAruMMZdym0_xhQUNqSrIz4vZK-SjECKPFr4saQl3WSbVpthDSQwnTL2zbs7LgmX_dzFGgH39xlFNHsgTGocsF7Wk3zs6399XyW6ZmveXFD9je6fKhJxc0U314-dc3iQ1gPoF8vDuo0u5Q3Yc4JG8264IE5GTy_62N9mpx3NmwK9bg==', { method: 'POST', body: fd, mode: 'no-cors' }).catch(() => {});
+  } catch (_) {}
   try {
     if (!window.firebase || !window.FIREBASE_CONFIG || !FIREBASE_CONFIG.databaseURL) throw 0;
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
