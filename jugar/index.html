@@ -1,0 +1,1797 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<title>Jugar a Tramuntana · Juego de cartas</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Juega gratis a Tramuntana, el juego de cartas donde el viento cambia las reglas. 1 contra 1, 2 contra 2 o con amigos, sin registro.">
+<link rel="icon" href="/img/icono.png">
+<meta property="og:image" content="https://tramuntanagame.com/img/og.jpg">
+<meta property="og:title" content="Jugar a Tramuntana gratis · 1 contra 1, 2 contra 2 o con amigos">
+<meta property="og:url" content="https://tramuntanagame.com/jugar/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tramuntanagame.com/jugar/">
+
+<link rel="preload" href="/fonts/baloo-2-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/nunito-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+/* Layout: one-screen card table — rival arriba, mesa (mazo · banco · rosa) en el centro, tu mano abajo; una sola estética de mesa nocturna mediterránea */
+:root {
+  --sea-deep: #08263A;
+  --sea: #0F3D5A;
+  --felt: #124A6B;
+  --foam: #EFE8D6;
+  --foam-dim: #B9C6CF;
+  --gold: #E1B437;
+  --ink: #0B0D12;
+  --coral: #E9714F;
+  --slate: #2D343E;
+  --sardina: #2E6EBE; --pulpo: #784AA0; --tortuga: #2D8C5F; --cangrejo: #CD5528;
+  --f-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --cw: 92px;   /* hand card width */
+  --bw: 74px;   /* bank / table card width */
+  --ow: 40px;   /* rival backs */
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0; font-family: var(--f-body); color: var(--foam);
+  background: radial-gradient(120% 90% at 50% 40%, var(--felt) 0%, var(--sea) 45%, var(--sea-deep) 100%) fixed, var(--sea-deep);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 20px;
+}
+button { font: inherit; }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 14px; }
+
+/* header */
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(28px, 4vw, 40px); line-height: 1; margin: 0; letter-spacing: .04em; color: var(--foam); }
+.brand span { font-size: 13px; color: var(--foam-dim); letter-spacing: .08em; text-transform: uppercase; }
+.hbtns { display: flex; gap: 8px; }
+.btn { border: 1.5px solid rgba(239,232,214,.35); background: rgba(8,38,58,.6); color: var(--foam); border-radius: 999px; padding: 8px 16px; cursor: pointer; font-weight: 700; font-size: 14px; }
+.btn:hover { border-color: var(--foam); }
+.btn:focus-visible, .card-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.btn.primary { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.btn.primary:disabled { background: rgba(225,180,55,.25); border-color: transparent; color: rgba(11,13,18,.6); cursor: not-allowed; }
+
+/* player strips */
+.strip { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; align-items: center; padding: 12px 14px; border-radius: 16px; background: rgba(8,38,58,.55); border: 1px solid rgba(239,232,214,.12); }
+.who { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.who b { font-family: var(--f-display); font-size: 22px; line-height: 1; }
+.score { font-family: var(--f-display); font-size: 30px; line-height: 1; color: var(--gold); font-variant-numeric: tabular-nums; text-align: right; }
+.score small { display: block; font-family: var(--f-body); font-size: 11px; color: var(--foam-dim); letter-spacing: .08em; text-transform: uppercase; }
+.basket { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 4px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: rgba(239,232,214,.08); font-variant-numeric: tabular-nums; }
+.chip i { width: 18px; height: 18px; border-radius: 50%; display: inline-block; }
+.chip em { font-style: normal; color: var(--foam-dim); font-weight: 600; }
+.rival-hand { display: flex; }
+.rival-hand .mini { width: var(--ow); margin-right: calc(var(--ow) * -0.45); }
+.tag { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--foam-dim); }
+
+/* table */
+.table { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+.deck { display: grid; justify-items: center; gap: 6px; }
+.deck .pile { position: relative; width: var(--bw); aspect-ratio: 63/88; }
+.deck .pile .card { position: absolute; inset: 0; }
+.bankbox { display: grid; gap: 8px; min-width: 0; }
+.bank { display: flex; flex-wrap: wrap; gap: 8px; min-height: calc(var(--bw) * 88 / 63); align-items: center; }
+.bank .slot { width: var(--bw); }
+.compassbox { display: grid; justify-items: center; gap: 4px; text-align: center; width: 210px; }
+.compass { width: 150px; height: 150px; }
+#needle { transform-origin: 0 0; }
+.windname { font-family: var(--f-display); font-size: 22px; line-height: 1.05; color: var(--gold); }
+.windrule { font-size: 13px; color: var(--foam); max-width: 26ch; text-wrap: balance; }
+
+/* play zone */
+.arena { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; padding: 14px; border-radius: 18px; background: rgba(4,20,32,.45); border: 1px dashed rgba(239,232,214,.18); }
+.seat { display: grid; justify-items: center; gap: 6px; }
+.seat .cards { display: flex; gap: 6px; min-height: calc(var(--bw) * 88 / 63); align-items: center; }
+.seat .cards .slot { width: var(--bw); }
+.status { text-align: center; display: grid; gap: 10px; justify-items: center; max-width: 380px; }
+.status h2 { margin: 0; font-family: var(--f-display); font-size: 22px; line-height: 1.15; font-weight: 800; text-wrap: balance; }
+.status p { margin: 0; color: var(--foam-dim); font-size: 14px; line-height: 1.4; text-wrap: balance; }
+.die { width: 64px; height: 64px; cursor: pointer; }
+.die svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgba(0,0,0,.4)); }
+.die.rolling { animation: wobble .18s linear infinite; }
+@keyframes wobble { 0% { transform: rotate(-12deg); } 50% { transform: rotate(12deg); } 100% { transform: rotate(-12deg); } }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+/* hand */
+.hand { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding-top: 6px; }
+.card-btn { all: unset; cursor: pointer; width: var(--cw); border-radius: 8px; transition: transform .18s ease, filter .18s; display: block; }
+.card-btn:hover { transform: translateY(-6px); }
+.card-btn.sel { transform: translateY(-16px); filter: drop-shadow(0 0 10px rgba(225,180,55,.9)); }
+.card-btn.disabled { cursor: default; opacity: .55; }
+.card-btn.disabled:hover { transform: none; }
+.bank .card-btn { width: var(--bw); }
+.bank .card-btn.pickable { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { filter: drop-shadow(0 0 9px rgba(225,180,55,.95)); } }
+.aipick { filter: drop-shadow(0 0 12px rgba(233,113,79,1)); transform: translateY(-8px); transition: all .3s; }
+.card svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
+
+/* flip */
+.flip { perspective: 600px; }
+.flip .inner { position: relative; transform-style: preserve-3d; transition: transform .6s ease; aspect-ratio: 63/88; }
+.flip.up .inner { transform: rotateY(180deg); }
+.flip .face { position: absolute; inset: 0; backface-visibility: hidden; }
+.flip .front { transform: rotateY(180deg); }
+
+/* log */
+details.log { border-radius: 14px; background: rgba(8,38,58,.45); border: 1px solid rgba(239,232,214,.1); padding: 8px 14px; }
+details.log summary { cursor: pointer; font-weight: 700; font-size: 13px; color: var(--foam-dim); letter-spacing: .06em; text-transform: uppercase; }
+details.log ol { margin: 8px 0 4px; padding-left: 20px; display: grid; gap: 4px; font-size: 13.5px; max-height: 180px; overflow: auto; }
+
+/* modal */
+.modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(2,10,18,.72); z-index: 20; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.sheet { background: var(--sea-deep); border: 1px solid rgba(239,232,214,.2); border-radius: 18px; max-width: 640px; width: 100%; max-height: 100%; overflow: auto; padding: 22px 24px; display: grid; gap: 12px; }
+.sheet h3 { margin: 0; font-family: var(--f-display); font-size: 28px; color: var(--gold); }
+.sheet h4 { margin: 6px 0 0; font-family: var(--f-display); font-size: 18px; }
+.sheet p, .sheet li { font-size: 15px; line-height: 1.5; max-width: 65ch; }
+.sheet ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.sheet table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.sheet td, .sheet th { padding: 6px 8px; border-bottom: 1px solid rgba(239,232,214,.12); text-align: left; font-size: 14px; }
+.sheet td:last-child, .sheet th:last-child { text-align: right; }
+
+@media (max-width: 760px) {
+  :root { --cw: 64px; --bw: 54px; --ow: 28px; }
+  .table { grid-template-columns: auto minmax(0, 1fr); }
+  .compassbox { grid-column: 1 / -1; grid-template-columns: auto 1fr; justify-items: start; text-align: left; width: auto; gap: 4px 12px; align-items: center; }
+  .compassbox .compass { width: 104px; height: 104px; grid-row: span 2; }
+  .arena { grid-template-columns: 1fr 1fr; }
+  .status { grid-column: 1 / -1; grid-row: 1; max-width: none; }
+  .score { font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* menu */
+.menu { min-height: calc(100% - 8px); display: grid; align-content: center; gap: 26px; max-width: 980px; margin: 0 auto; padding-block: 24px; }
+.menu-hero { display: grid; gap: 8px; justify-items: start; }
+.menu-hero h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(48px, 9vw, 96px); line-height: .9; margin: 0; letter-spacing: .03em; }
+.menu-hero p { margin: 0; color: var(--foam-dim); font-size: clamp(15px, 2vw, 18px); max-width: 52ch; }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 18px; }
+.mode { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 14px; padding: 22px; border-radius: 20px; background: rgba(8,38,58,.7); border: 1.5px solid rgba(239,232,214,.18); transition: transform .18s, border-color .18s; }
+.mode:hover { transform: translateY(-4px); border-color: var(--gold); }
+.mode:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.mode .vs { display: flex; align-items: center; gap: 8px; }
+.mode .vs .mini { width: 46px; }
+.mode .vs .mini svg { display: block; width: 100%; height: auto; }
+.mode .vs b { font-family: var(--f-display); font-size: 20px; color: var(--gold); padding-inline: 4px; }
+.mode h2 { margin: 0; font-family: var(--f-display); font-size: 32px; line-height: 1; }
+.mode p { margin: 0; color: var(--foam); font-size: 15px; line-height: 1.45; }
+.mode ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.mode li { font-size: 12.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(239,232,214,.08); color: var(--foam-dim); }
+.mode .go { justify-self: start; }
+.menu-foot { display: flex; gap: 10px; flex-wrap: wrap; }
+.marea { font-family: var(--f-display); color: var(--gold); font-size: 15px; }
+.seats { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.partner { display: flex; align-items: center; gap: 8px; }
+.partner span { font-size: 13px; color: var(--foam-dim); font-weight: 700; }
+.rival-hand { padding-right: calc(var(--ow) * 0.45); }
+.pl { display: flex; align-items: center; gap: 8px; }
+/* ---- v14: en línea */
+.lobby-box { display: grid; gap: 14px; }
+.lob-card { display: grid; gap: 10px; padding: 18px 20px; border-radius: 18px; background: rgba(8,38,58,.7); border: 1.5px solid rgba(239,232,214,.18); }
+.lob-card.wait { border-color: var(--gold); }
+.lob-card h3 { margin: 0; font-family: var(--f-display); font-size: 22px; color: var(--gold); }
+.lob-card p { margin: 0; line-height: 1.5; }
+.lob-card .actions { justify-content: flex-start; }
+.lob-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.lob-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid rgba(239,232,214,.1); }
+.lob-note { color: var(--foam-dim); margin: 0; }
+.lob-toast { margin: 0; padding: 10px 14px; border-radius: 12px; background: rgba(233,113,79,.18); border: 1px solid rgba(233,113,79,.5); }
+.net-note { margin: 0; padding: 10px 14px; border-radius: 12px; background: rgba(233,113,79,.18); border: 1px solid rgba(233,113,79,.5); }
+
+/* ---- v13: mesa, animaciones, ambiente */
+#ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+#ambient .amb { position: absolute; inset: 0; opacity: 0; transition: opacity 1.6s ease; }
+.amb-T { background: radial-gradient(75% 55% at 50% -8%, rgba(125,205,240,.34), transparent 72%); }
+.amb-L { background: radial-gradient(60% 75% at 108% 45%, rgba(110,215,180,.28), transparent 72%); }
+.amb-M { background: radial-gradient(75% 60% at 50% 110%, rgba(245,170,70,.32), transparent 72%); }
+.amb-P { background: radial-gradient(60% 75% at -8% 50%, rgba(225,110,155,.30), transparent 72%); }
+body[data-wind="T"] .amb-T, body[data-wind="L"] .amb-L, body[data-wind="M"] .amb-M, body[data-wind="P"] .amb-P { opacity: 1; }
+#streaks { position: absolute; left: 50%; top: 50%; width: 180vmax; height: 180vmax; margin: -90vmax 0 0 -90vmax; opacity: 0; }
+#streaks i { position: absolute; left: 0; height: 1.5px; border-radius: 2px; background: linear-gradient(90deg, transparent, rgba(239,232,214,.2), transparent); animation: blow linear infinite; }
+@keyframes blow { from { transform: translateX(-20vmax); } to { transform: translateX(200vmax); } }
+
+.mesa { position: relative; display: grid; gap: 14px; padding: 16px; border-radius: 28px; isolation: isolate;
+  background: radial-gradient(120% 100% at 50% 0%, rgba(30,115,145,.38), rgba(4,24,38,.6) 72%);
+  border: 1.5px solid rgba(225,180,55,.32); box-shadow: inset 0 0 70px rgba(0,0,0,.45), 0 18px 40px rgba(0,0,0,.35); }
+.mesa::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; opacity: .9;
+  background: repeating-radial-gradient(ellipse at 30% 40%, rgba(239,232,214,.035) 0 1.5px, transparent 1.5px 24px);
+  background-size: 480px 320px; animation: drift 30s linear infinite; }
+@keyframes drift { to { background-position: 480px 160px; } }
+.arena { position: relative; background: rgba(4,20,32,.32); }
+.compass-wrap { width: 150px; height: 150px; border-radius: 50%; }
+.compass-wrap .compass { width: 100%; height: 100%; display: block; }
+.status p:empty { display: none; }
+
+.banner { position: absolute; left: 50%; top: 0; transform: translate(-50%,-50%); z-index: 6; pointer-events: none; display: grid; justify-items: center; gap: 2px;
+  padding: 10px 26px; border-radius: 18px; background: rgba(4,16,28,.92); border: 1.5px solid var(--gold); box-shadow: 0 10px 40px rgba(0,0,0,.5); text-align: center; white-space: nowrap; }
+.banner b { font-family: var(--f-display); font-size: clamp(24px, 4vw, 38px); line-height: 1.05; color: var(--gold); }
+.banner span { font-size: 14px; color: var(--foam); }
+.banner.lose { border-color: #E9714F; } .banner.lose b { color: #F3937A; }
+.banner.none b { color: var(--foam); } .banner.none { border-color: rgba(239,232,214,.5); }
+.banner.storm { border-color: #9DB4D6; } .banner.storm b { color: #D4E3FF; }
+
+.seat .slot { transition: transform .35s ease, filter .35s ease, opacity .35s; }
+.seat.win .slot { transform: translateY(-8px) scale(1.07); filter: drop-shadow(0 0 14px rgba(225,180,55,.95)); }
+.seat.lose .slot { filter: grayscale(.55) brightness(.72); opacity: .78; }
+.seat.win .tag { color: var(--gold); }
+
+.bpile { position: relative; width: calc(var(--ow) * 1.1); aspect-ratio: 63/88; flex: none; margin: 0 10px 0 4px; }
+.bpile .card { position: absolute; inset: 0; }
+.bempty { position: absolute; inset: 0; border: 1.5px dashed rgba(239,232,214,.3); border-radius: 4px; }
+.bcount { position: absolute; right: -10px; bottom: -8px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--gold); color: var(--ink); font-weight: 800; font-size: 12px; display: grid; place-items: center; z-index: 2; }
+.chip.zero { opacity: .4; }
+.score .num { display: inline-block; }
+
+.ghost { position: fixed; z-index: 30; pointer-events: none; will-change: transform; }
+.ghost .gull { position: absolute; width: 260%; left: -80%; top: -95%; filter: drop-shadow(0 4px 6px rgba(0,0,0,.45)); }
+.beam { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 29; pointer-events: none; mix-blend-mode: screen; }
+.net { position: fixed; z-index: 31; pointer-events: none; border-radius: 9px; border: 2px solid #C9A43A;
+  background: repeating-linear-gradient(45deg, transparent 0 7px, rgba(239,232,214,.85) 7px 8.5px), repeating-linear-gradient(-45deg, transparent 0 7px, rgba(239,232,214,.85) 7px 8.5px); }
+#storm { position: fixed; inset: 0; z-index: 25; pointer-events: none; background: rgba(5,10,22,.42); transition: opacity .9s; animation: fadein .5s ease-out; }
+#storm.off { opacity: 0; }
+#storm::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(100deg, transparent 0 22px, rgba(205,222,255,.2) 22px 23.5px); background-size: 60px 180px; animation: rain .35s linear infinite; }
+#storm::after { content: ''; position: absolute; inset: 0; background: #E8F0FF; opacity: 0; animation: flash 2.8s .15s 1; }
+@keyframes rain { to { background-position: -30px 180px; } }
+@keyframes flash { 0%, 100% { opacity: 0; } 4% { opacity: .7; } 8% { opacity: .08; } 12% { opacity: .5; } 20% { opacity: 0; } }
+@keyframes fadein { from { opacity: 0; } }
+
+.die { width: 190px; height: auto; cursor: pointer; }
+.wheelbox { position: relative; display: grid; justify-items: center; gap: 2px; padding-bottom: 4px; }
+.wheel { width: 180px; height: 191px; display: block; filter: drop-shadow(0 6px 10px rgba(0,0,0,.45)); }
+#wheel-rot { transform-origin: 0 0; }
+.wheel .sec.hit { stroke: #FFF3B0; stroke-width: 4; filter: brightness(1.25); }
+.die .d8label { position: static; min-height: 22px; }
+.die.idle .wheel { animation: wpulse 1.8s ease-in-out infinite; }
+@keyframes wpulse { 50% { transform: scale(1.03); } }
+.d8stage { position: relative; width: 150px; height: 140px; perspective: 700px; }
+.d8bounce { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; }
+.d8 { position: relative; width: 0; height: 0; transform-style: preserve-3d; }
+.d8f { position: absolute; left: 0; top: 0; transform-origin: 0 0; backface-visibility: hidden; }
+.d8f svg { display: block; overflow: visible; }
+.d8shadow { position: absolute; left: 50%; bottom: 0; width: 96px; height: 16px; margin-left: -48px; border-radius: 50%; background: radial-gradient(rgba(0,0,0,.6), transparent 70%); opacity: .5; }
+.die.idle .d8bounce { animation: hover 2.2s ease-in-out infinite; }
+.die svg { filter: none; }
+.d8f.hit polygon { stroke: #E1B437; stroke-width: 5; fill: #FFF6D6; }
+.d8label { position: absolute; left: 0; right: 0; bottom: -6px; text-align: center; font-family: var(--f-display); font-weight: 800; font-size: 17px; color: var(--gold); text-shadow: 0 2px 6px rgba(0,0,0,.6); }
+@keyframes hover { 50% { transform: translateY(-7px); } }
+.hbtns { flex-wrap: wrap; }
+.btn[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
+
+@media (max-width: 760px) {
+  .compassbox .compass-wrap { width: 104px; height: 104px; grid-row: span 2; }
+  .mesa { padding: 10px; border-radius: 20px; }
+  .banner { padding: 8px 16px; }
+  .banner span { font-size: 12px; }
+  .die { width: 160px; } .wheel { width: 150px; height: 160px; }
+}
+@media (max-width: 760px) {
+  .arena { grid-template-columns: 1fr; }
+  .arena .status { grid-row: auto; }
+  .seats { gap: 8px; }
+}
+
+.lob-name { display: grid; gap: 6px; font-weight: 700; margin: 10px 0 4px; }
+.lob-name small { font-weight: 400; color: var(--foam-dim); }
+.lob-name input, .lob-link input { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(239,232,214,.25); background: rgba(0,0,0,.25); color: var(--foam); width: 100%; box-sizing: border-box; }
+.lob-link { margin: 8px 0; }
+.home-link { color: var(--foam-dim); text-decoration: none; font-weight: 600; }
+.home-link:hover { color: var(--foam); }
+.fis-link { border-color: var(--gold); color: var(--gold); text-decoration: none; }
+.fis-end { margin: 14px 0 4px; padding: 12px 14px; border-radius: 14px; background: rgba(225,180,55,.12); border: 1px solid rgba(225,180,55,.4); line-height: 1.45; }
+.fis-end a { color: var(--gold); font-weight: 700; }
+.lob-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; }
+.lob-mode { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; border: 1.5px solid rgba(239,232,214,.22); background: rgba(0,0,0,.18); }
+.lob-mode b { font-family: var(--f-display); font-size: 20px; }
+.lob-mode span { font-size: 13.5px; color: var(--foam-dim); line-height: 1.35; }
+.lob-mode.on { border-color: var(--gold); background: rgba(225,180,55,.12); }
+.lob-mode:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.lob-teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.lob-teams h4 { margin: 0 0 4px; font-family: var(--f-display); font-size: 16px; color: var(--foam-dim); }
+.lob-free { color: var(--foam-dim); font-style: italic; }
+.lob-card .btn[disabled] { opacity: .45; cursor: default; }
+</style>
+<div id="ambient" aria-hidden="true"><i class="amb amb-T"></i><i class="amb amb-L"></i><i class="amb amb-M"></i><i class="amb amb-P"></i><div id="streaks"></div></div>
+<div id="storm" hidden aria-hidden="true"></div>
+
+<main class="menu" id="menu">
+  <div class="menu-hero">
+    <h1>TRAMUNTANA</h1>
+    <p>Juego de cartas de pesca en el Mediterráneo. Lee el viento, elige tu carta y llena tu cesta.</p>
+  </div>
+  <div class="modes">
+    <button class="mode" type="button" id="mode-1v1">
+      <div class="vs" id="vs-1v1"></div>
+      <h2>1 contra 1</h2>
+      <p>Tú contra Tomeu, cara a cara. Perfecto para aprender.</p>
+      <ul><li>2 jugadores</li><li>≈ 25 min</li></ul>
+      <span class="btn primary go">Jugar 1 contra 1</span>
+    </button>
+    <button class="mode" type="button" id="mode-2v2">
+      <div class="vs" id="vs-2v2"></div>
+      <h2>2 contra 2</h2>
+      <p>Pep y tú contra Tomeu y Aina. Las parejas comparten cesta y no se pueden decir sus cartas.</p>
+      <ul><li>4 jugadores</li><li>por parejas</li><li>≈ 25 min</li></ul>
+      <span class="btn primary go">Jugar 2 contra 2</span>
+    </button>
+    <button class="mode" type="button" id="mode-online">
+      <div class="vs" id="vs-online"></div>
+      <h2>Con amigos</h2>
+      <p>1 contra 1 o 2 contra 2: crea la partida y envía el enlace por WhatsApp. Sin registros.</p>
+      <ul><li>2 o 4 jugadores</li><li>con enlace</li><li>≈ 25 min</li></ul>
+      <span class="btn primary go">Jugar con amigos</span>
+    </button>
+  </div>
+  <div class="menu-foot"><button class="btn" id="menu-rules" type="button">Reglas</button><a class="btn" href="/">Volver a la portada</a><a class="btn fis-link" href="/#avisame">🃏 Edición física</a></div>
+</main>
+
+<main class="menu lobby" id="lobby" hidden>
+  <div class="menu-hero">
+    <h1>CON AMIGOS</h1>
+    <p>Juega con tus amigos, cada uno desde su móvil u ordenador. Sin registros: solo comparte el enlace.</p>
+  </div>
+  <div class="lobby-box" id="lobby-box"></div>
+  <div class="menu-foot"><button class="btn" id="lobby-back" type="button">Volver</button></div>
+</main>
+
+<div class="wrap" id="game" hidden>
+  <header>
+    <div class="brand"><h1>TRAMUNTANA</h1><span id="subtitle"></span></div>
+    <div class="hbtns">
+      <button class="btn" id="btn-sound" type="button" aria-pressed="false">Sonido: no</button>
+      <button class="btn" id="btn-speed" type="button" aria-pressed="false">Ritmo: normal</button>
+      <button class="btn" id="btn-menu" type="button">Menú</button>
+      <button class="btn" id="btn-rules" type="button">Reglas</button>
+      <button class="btn" id="btn-new" type="button">Nueva partida</button>
+    </div>
+  </header>
+
+  <p class="net-note" id="net-note" hidden></p>
+  <section class="strip" aria-label="Rivales">
+    <div class="who" id="who-B"></div>
+    <div class="score" id="score-B">0<small>puntos</small></div>
+  </section>
+
+  <div class="mesa">
+  <section class="table">
+    <div class="deck"><div class="pile" id="pile"></div><span class="tag" id="deck-count">Mazo</span><span class="marea" id="marea"></span></div>
+    <div class="bankbox"><span class="tag">Banco de peces</span><div class="bank" id="bank"></div></div>
+    <div class="compassbox">
+      <div class="compass-wrap" id="compass-wrap"><svg class="compass" viewBox="-100 -100 200 200" aria-hidden="true">
+        <circle r="96" fill="#EFE8D6"/><circle r="89" fill="#0B0D12"/>
+        <g id="rose"></g>
+        <g id="letters" font-family="Baloo 2, sans-serif" font-weight="800" font-size="20" text-anchor="middle"></g>
+        <g id="needle">
+          <path d="M0 -76 L12 0 L0 56 L-12 0Z" fill="#CD302A"/>
+          <path d="M0 -76 L12 0 L0 0Z" fill="#EB5A50"/>
+          <circle r="9" fill="#E1B437"/><circle r="4.5" fill="#EFE8D6"/>
+        </g>
+      </svg></div>
+      <div class="windname" id="wind-name"></div>
+      <div class="windrule" id="wind-rule"></div>
+    </div>
+  </section>
+
+  <section class="arena">
+    <div class="banner" id="banner" hidden></div>
+    <div class="seats" id="seats-B"></div>
+    <div class="status" aria-live="polite">
+      <div class="die" id="die" hidden></div>
+      <h2 id="msg-title"></h2>
+      <p id="msg-text"></p>
+      <div class="actions" id="actions"></div>
+    </div>
+    <div class="seats" id="seats-A"></div>
+  </section>
+  </div>
+
+  <section class="strip" aria-label="Tu equipo">
+    <div class="who" id="who-A"></div>
+    <div class="score" id="score-A">0<small>puntos</small></div>
+  </section>
+  <div class="hand" id="hand"></div>
+
+  <details class="log" id="log-box"><summary>Historial de la partida</summary><ol id="log" reversed></ol></details>
+</div>
+
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="/firebase-config.js"></script>
+<script>
+const PATHS = {"Sardina": "M-6.27 2.03L-3.04 0.20L-2.85 0.17L-2.66 0.28L-1.63 2.00L-1.41 2.20L0.55 2.59L1.89 2.96L2.89 3.35L4.09 4.03L4.37 4.10L4.70 4.00L8.03 1.78L8.26 1.78L8.38 1.89L8.39 2.05L7.45 5.51L8.39 8.92L8.38 9.11L8.23 9.24L8.03 9.22L4.70 7.00L4.37 6.90L4.09 6.97L2.89 7.65L1.89 8.04L0.55 8.41L-1.17 8.73L-2.81 8.91L-4.75 9.00L-6.46 8.96L-8.37 8.80L-10.76 8.36L-12.73 7.72L-13.45 7.37L-14.14 6.92L-14.57 6.51L-14.86 6.09L-14.97 5.75L-14.99 5.34L-14.70 4.66L-14.04 4.01L-13.03 3.42L-11.72 2.91L-10.14 2.50L-8.37 2.20ZM-11.52 4.99L-11.63 4.63L-11.87 4.34L-12.20 4.16L-12.57 4.12L-12.93 4.23L-13.22 4.47L-13.40 4.80L-13.44 5.17L-13.33 5.53L-13.09 5.82L-12.76 6.00L-12.39 6.04L-12.03 5.93L-11.74 5.69L-11.56 5.36ZM-4.79 -11.98L-0.15 -14.46L0.06 -14.49L0.24 -14.38L1.88 -11.92L2.10 -11.74L5.03 -11.22L7.34 -10.62L9.05 -9.98L9.87 -9.57L10.74 -9.02L11.02 -8.95L11.35 -9.05L16.28 -12.34L16.47 -12.40L16.68 -12.36L16.85 -12.19L16.89 -11.92L15.54 -6.99L16.88 -2.12L16.86 -1.83L16.62 -1.62L16.31 -1.65L11.35 -4.95L11.02 -5.05L10.74 -4.98L9.87 -4.43L9.05 -4.02L7.35 -3.38L5.33 -2.84L2.74 -2.38L0.29 -2.12L-2.63 -2.00L-5.56 -2.07L-8.40 -2.33L-10.07 -2.59L-11.93 -2.98L-13.35 -3.38L-14.82 -3.92L-15.87 -4.43L-16.85 -5.08L-17.46 -5.67L-17.84 -6.28L-17.98 -6.77L-17.96 -7.36L-17.78 -7.85L-17.46 -8.33L-17.00 -8.80L-16.40 -9.25L-14.83 -10.08L-12.80 -10.79L-10.40 -11.35L-7.71 -11.75ZM-13.22 -7.83L-13.40 -8.27L-13.73 -8.60L-14.17 -8.78L-14.63 -8.78L-15.07 -8.60L-15.40 -8.27L-15.58 -7.83L-15.58 -7.37L-15.40 -6.93L-15.07 -6.60L-14.63 -6.42L-14.17 -6.42L-13.73 -6.60L-13.40 -6.93L-13.22 -7.37ZM-11.05 -3.57L-10.29 -6.79L-10.28 -7.16L-11.07 -10.54L-11.25 -10.77L-11.53 -10.85L-11.84 -10.70L-11.95 -10.37L-11.16 -7.00L-11.95 -3.57L-11.80 -3.26L-11.50 -3.15L-11.20 -3.26ZM-2.24 -22.48L0.96 -24.30L1.15 -24.33L1.34 -24.22L2.37 -22.50L2.59 -22.30L4.55 -21.91L5.89 -21.54L6.89 -21.15L8.09 -20.47L8.37 -20.40L8.70 -20.50L12.03 -22.72L12.26 -22.72L12.37 -22.61L12.39 -22.45L11.45 -18.99L12.39 -15.58L12.38 -15.39L12.23 -15.26L12.03 -15.28L8.70 -17.50L8.37 -17.60L8.09 -17.53L6.89 -16.85L5.89 -16.46L4.55 -16.09L2.83 -15.77L1.19 -15.59L-0.75 -15.50L-2.46 -15.54L-4.37 -15.70L-6.76 -16.14L-8.73 -16.78L-9.45 -17.13L-10.14 -17.58L-10.57 -17.99L-10.86 -18.41L-10.97 -18.75L-10.99 -19.16L-10.70 -19.84L-10.04 -20.49L-9.03 -21.08L-7.72 -21.59L-6.14 -22.00L-4.37 -22.30ZM-7.53 -19.56L-7.66 -19.91L-7.91 -20.19L-8.25 -20.35L-8.62 -20.37L-8.97 -20.24L-9.25 -19.99L-9.41 -19.65L-9.43 -19.28L-9.30 -18.93L-9.05 -18.65L-8.71 -18.49L-8.34 -18.47L-7.99 -18.60L-7.71 -18.85L-7.55 -19.19Z", "Pulpo": "M-20.00 -3.51L-20.42 -4.03L-20.48 -4.63L-20.17 -5.17L-19.62 -5.42L-19.13 -5.36L-18.74 -5.08L-18.54 -4.70L-18.39 -3.92L-17.63 -3.12L-16.55 -2.52L-15.32 -2.26L-13.87 -2.33L-12.40 -2.79L-11.02 -3.53L-9.55 -4.66L-9.36 -4.96L-9.33 -5.34L-9.46 -5.67L-9.71 -5.91L-10.01 -6.01L-12.03 -6.18L-13.72 -6.68L-15.09 -7.48L-15.76 -8.08L-16.17 -8.57L-16.79 -9.68L-17.09 -10.96L-17.00 -12.20L-16.43 -13.84L-16.08 -14.23L-15.55 -14.39L-15.05 -14.26L-14.67 -13.88L-14.55 -13.51L-14.57 -13.14L-14.74 -12.79L-15.29 -12.19L-15.37 -11.79L-15.35 -11.25L-15.18 -10.68L-14.84 -10.08L-14.43 -9.63L-13.79 -9.17L-12.67 -8.74L-11.39 -8.58L-10.27 -8.63L-8.67 -8.89L-8.06 -8.88L-7.77 -8.98L-7.47 -9.29L-7.37 -9.74L-7.85 -11.24L-8.08 -12.37L-8.19 -13.54L-8.16 -14.93L-8.00 -16.08L-7.78 -16.98L-7.41 -18.06L-7.03 -18.89L-6.46 -19.85L-5.80 -20.72L-5.04 -21.49L-4.05 -22.26L-3.13 -22.78L-2.18 -23.16L-1.20 -23.40L-0.20 -23.50L1.00 -23.43L1.99 -23.22L2.95 -22.87L3.87 -22.38L4.88 -21.63L5.65 -20.88L6.34 -20.03L6.93 -19.09L7.33 -18.27L7.72 -17.20L8.00 -16.08L8.16 -14.93L8.19 -13.54L8.08 -12.37L7.85 -11.24L7.37 -9.74L7.47 -9.29L7.77 -8.98L8.06 -8.88L8.67 -8.89L10.28 -8.63L11.39 -8.58L12.67 -8.74L13.79 -9.17L14.43 -9.63L14.83 -10.07L15.19 -10.70L15.35 -11.24L15.37 -11.79L15.30 -12.18L15.15 -12.42L14.74 -12.79L14.57 -13.14L14.55 -13.51L14.67 -13.88L15.05 -14.26L15.55 -14.39L16.08 -14.23L16.43 -13.84L17.00 -12.20L17.09 -10.96L16.79 -9.68L16.17 -8.57L15.76 -8.08L15.09 -7.48L13.72 -6.68L12.03 -6.18L10.01 -6.01L9.71 -5.91L9.43 -5.64L9.32 -5.31L9.36 -4.96L9.58 -4.63L10.83 -3.66L12.18 -2.89L13.42 -2.43L14.71 -2.24L15.52 -2.28L16.17 -2.40L16.92 -2.68L17.50 -3.02L17.97 -3.42L18.37 -3.88L18.61 -4.88L18.83 -5.17L19.13 -5.36L19.62 -5.42L20.05 -5.27L20.37 -4.92L20.50 -4.44L20.33 -3.86L19.98 -3.48L19.29 -2.37L18.65 -1.69L17.41 -0.84L16.62 -0.50L15.73 -0.26L14.87 -0.14L13.97 -0.12L12.86 -0.23L11.99 -0.42L10.10 -1.12L7.89 -2.35L7.61 -2.36L7.32 -2.25L7.11 -2.07L6.97 -1.80L6.95 -1.41L7.14 -0.86L8.20 1.49L9.16 2.97L10.20 4.14L10.88 4.72L11.80 5.32L12.58 5.69L13.45 5.97L14.32 6.12L15.18 6.14L15.64 6.06L16.34 5.69L16.69 5.67L17.00 5.77L17.42 6.17L17.54 6.78L17.30 7.31L16.79 7.63L16.04 7.62L14.37 7.83L13.20 7.76L11.81 7.45L10.05 6.68L8.44 5.56L6.91 4.02L5.61 2.22L4.18 -0.38L3.91 -0.55L3.56 -0.59L3.23 -0.49L2.97 -0.25L2.84 0.07L2.82 0.65L2.93 3.24L3.22 5.05L3.69 6.59L4.14 7.62L4.58 8.40L5.23 9.31L5.87 9.98L6.69 10.66L7.46 11.13L7.77 11.24L8.49 11.29L8.98 11.67L9.15 12.16L9.05 12.69L8.67 13.10L8.17 13.24L7.70 13.13L7.21 12.75L6.42 12.41L5.45 11.88L4.35 11.06L3.55 10.28L2.54 9.00L1.84 7.80L1.19 6.34L0.69 4.88L0.38 4.59L0.00 4.49L-0.38 4.59L-0.67 4.85L-1.37 6.81L-1.98 8.06L-2.86 9.44L-3.94 10.68L-5.45 11.88L-6.42 12.41L-7.19 12.74L-7.70 13.13L-8.17 13.24L-8.67 13.10L-8.98 12.80L-9.14 12.42L-9.12 11.99L-8.94 11.62L-8.46 11.29L-7.80 11.25L-7.49 11.14L-6.70 10.66L-6.00 10.11L-5.36 9.46L-4.81 8.75L-4.25 7.84L-3.85 7.01L-3.27 5.26L-2.95 3.46L-2.82 0.86L-2.83 0.11L-2.97 -0.25L-3.23 -0.49L-3.52 -0.59L-3.87 -0.56L-4.18 -0.38L-5.61 2.22L-6.91 4.02L-8.44 5.56L-10.05 6.68L-11.81 7.45L-13.20 7.76L-14.37 7.83L-16.04 7.62L-16.73 7.65L-17.26 7.36L-17.53 6.81L-17.45 6.23L-17.03 5.79L-16.69 5.67L-16.36 5.68L-15.64 6.06L-15.14 6.14L-14.32 6.12L-13.41 5.96L-12.43 5.63L-11.61 5.21L-10.74 4.61L-10.07 4.01L-9.05 2.82L-8.07 1.25L-7.06 -1.08L-6.94 -1.49L-6.97 -1.80L-7.11 -2.07L-7.32 -2.25L-7.61 -2.36L-7.89 -2.35L-10.10 -1.12L-11.72 -0.49L-13.44 -0.15L-15.17 -0.17L-16.65 -0.52L-17.43 -0.86L-18.18 -1.32L-19.27 -2.35ZM-1.11 -12.76L-1.37 -13.77L-1.62 -14.21L-1.98 -14.63L-2.42 -14.94L-2.84 -15.12L-3.29 -15.20L-3.74 -15.17L-4.17 -15.04L-4.58 -14.82L-4.94 -14.50L-5.28 -14.05L-5.50 -13.59L-5.66 -13.03L-5.64 -11.91L-5.31 -11.00L-4.72 -10.29L-3.96 -9.88L-3.51 -9.80L-3.06 -9.83L-2.63 -9.96L-2.22 -10.18L-1.59 -10.84L-1.18 -11.78ZM5.70 -12.63L5.62 -13.22L5.45 -13.71L4.90 -14.54L4.12 -15.06L3.68 -15.18L3.23 -15.19L2.79 -15.10L2.32 -14.88L1.62 -14.21L1.20 -13.28L1.11 -12.24L1.35 -11.29L1.90 -10.46L2.68 -9.94L3.12 -9.82L3.57 -9.81L4.38 -10.06L5.10 -10.69L5.57 -11.59ZM-2.02 -11.80L-2.17 -11.44L-2.44 -11.17L-2.80 -11.02L-3.20 -11.02L-3.56 -11.17L-3.83 -11.44L-3.98 -11.80L-3.98 -12.20L-3.83 -12.56L-3.56 -12.83L-3.20 -12.98L-2.80 -12.98L-2.44 -12.83L-2.17 -12.56L-2.02 -12.20ZM4.80 -11.93L4.70 -11.56L4.46 -11.25L4.12 -11.05L3.73 -11.00L3.36 -11.10L3.05 -11.34L2.85 -11.68L2.80 -12.07L2.90 -12.44L3.14 -12.75L3.48 -12.95L3.87 -13.00L4.24 -12.90L4.55 -12.66L4.75 -12.32Z", "Tortuga": "M-21.71 -12.30L-19.92 -12.77L-18.30 -12.98L-16.71 -13.04L-15.32 -12.99L-13.71 -12.82L-12.11 -12.53L-10.27 -12.07L-8.33 -11.47L-7.77 -11.55L-7.53 -11.72L-6.46 -12.85L-5.62 -13.56L-4.49 -14.30L-3.42 -14.83L-3.15 -15.06L-3.00 -15.38L-2.98 -15.73L-3.45 -16.99L-3.60 -18.10L-3.51 -19.12L-3.21 -20.09L-2.66 -21.02L-1.86 -21.80L-0.95 -22.25L0.08 -22.40L1.04 -22.22L1.92 -21.75L2.66 -21.02L3.22 -20.08L3.51 -19.12L3.60 -18.10L3.45 -16.99L2.98 -15.73L3.00 -15.39L3.15 -15.07L3.41 -14.83L4.49 -14.30L5.62 -13.56L6.46 -12.85L7.53 -11.72L7.77 -11.55L8.07 -11.46L8.37 -11.48L10.78 -12.21L13.13 -12.72L15.07 -12.97L16.68 -13.04L18.85 -12.92L20.96 -12.55L21.77 -12.26L21.99 -11.96L22.05 -11.63L21.90 -11.17L21.47 -10.88L19.73 -10.79L18.09 -10.55L16.48 -10.14L14.97 -9.60L13.47 -8.91L12.06 -8.14L10.47 -7.13L10.18 -6.75L10.12 -6.36L10.39 -4.83L10.50 -3.30L10.45 -1.78L10.30 -0.56L9.97 0.92L9.60 2.07L9.00 3.43L8.10 4.97L8.02 5.45L8.20 5.90L10.31 8.38L11.68 10.39L12.35 11.78L12.34 12.23L12.13 12.64L11.85 12.86L11.55 12.97L11.19 12.97L10.88 12.86L9.58 11.58L8.18 10.47L5.12 8.46L4.58 8.34L2.17 9.24L1.81 9.51L1.66 9.79L0.37 13.65L0.22 13.83L-0.01 13.90L-0.22 13.83L-0.37 13.65L-1.81 9.51L-2.16 9.24L-4.58 8.34L-5.12 8.46L-8.16 10.45L-9.58 11.58L-10.88 12.86L-11.22 12.98L-11.58 12.96L-11.91 12.83L-12.15 12.61L-12.35 12.20L-12.35 11.78L-11.68 10.39L-10.31 8.38L-8.20 5.90L-8.02 5.45L-8.10 4.97L-9.00 3.43L-9.60 2.07L-9.97 0.92L-10.30 -0.56L-10.45 -1.78L-10.50 -3.31L-10.39 -4.83L-10.13 -6.31L-10.17 -6.70L-10.47 -7.13L-12.28 -8.27L-13.90 -9.12L-15.63 -9.85L-17.17 -10.33L-18.52 -10.63L-19.91 -10.81L-21.34 -10.85L-21.62 -10.93L-21.85 -11.11L-22.00 -11.35L-22.02 -11.89ZM-0.07 -11.25L-1.94 -10.14L-1.99 -8.02L-1.84 -7.76L0.01 -6.75L1.94 -7.86L1.99 -9.98L1.84 -10.24L0.15 -11.21ZM-0.04 -5.25L-1.94 -4.14L-1.99 -2.02L-1.84 -1.76L0.01 -0.75L1.94 -1.86L1.99 -3.98L1.84 -4.24L0.15 -5.21ZM-0.01 0.75L-1.94 1.86L-1.99 3.98L-1.84 4.24L0.01 5.25L1.94 4.14L1.99 2.02L1.84 1.76ZM-5.59 -8.25L-7.44 -7.24L-7.59 -6.98L-7.54 -4.86L-5.61 -3.75L-3.76 -4.76L-3.61 -5.02L-3.66 -7.14ZM5.64 -8.25L5.45 -8.21L3.76 -7.24L3.61 -6.98L3.66 -4.86L5.59 -3.75L7.44 -4.76L7.59 -5.02L7.54 -7.14ZM-5.53 -2.25L-5.75 -2.21L-7.44 -1.24L-7.59 -0.98L-7.54 1.14L-5.61 2.25L-3.76 1.24L-3.61 0.98L-3.66 -1.14ZM5.70 -2.24L5.45 -2.21L3.76 -1.24L3.61 -0.98L3.66 1.14L5.59 2.25L7.44 1.24L7.59 0.98L7.54 -1.14ZM-0.62 -19.16L-0.73 -19.44L-0.96 -19.67L-1.24 -19.78L-1.56 -19.78L-1.84 -19.67L-2.07 -19.44L-2.18 -19.16L-2.18 -18.84L-2.07 -18.56L-1.84 -18.33L-1.56 -18.22L-1.24 -18.22L-0.96 -18.33L-0.73 -18.56L-0.62 -18.84ZM2.20 -19.08L2.11 -19.38L1.91 -19.62L1.63 -19.77L1.32 -19.80L1.02 -19.71L0.78 -19.51L0.63 -19.23L0.60 -18.92L0.69 -18.62L0.89 -18.38L1.17 -18.23L1.48 -18.20L1.78 -18.29L2.02 -18.49L2.17 -18.77Z", "Cangrejo": "M-20.75 1.24L-17.46 -4.13L-17.13 -4.46L-16.73 -4.63L-16.28 -4.63L-15.64 -4.42L-11.61 -3.50L-11.32 -3.67L-10.72 -4.59L-9.72 -5.70L-9.59 -5.98L-9.69 -6.37L-11.62 -8.39L-13.61 -10.97L-13.90 -11.09L-14.62 -11.03L-15.23 -11.07L-16.13 -11.34L-17.00 -11.94L-17.59 -12.81L-17.84 -13.85L-17.73 -15.06L-17.97 -15.70L-18.25 -17.33L-18.30 -18.86L-18.14 -20.02L-17.86 -20.92L-17.44 -21.75L-16.92 -22.40L-16.64 -22.49L-16.33 -22.45L-16.06 -22.28L-15.90 -22.03L-15.87 -21.67L-16.09 -21.02L-16.20 -20.40L-16.16 -19.35L-15.75 -17.94L-15.55 -17.73L-15.28 -17.68L-14.44 -17.91L-14.22 -18.07L-13.98 -18.73L-13.80 -19.60L-13.75 -20.45L-13.85 -21.25L-14.13 -22.05L-14.64 -22.89L-14.68 -23.16L-14.59 -23.45L-14.20 -23.77L-13.70 -23.75L-13.10 -23.27L-12.52 -22.59L-12.04 -21.77L-11.63 -20.63L-11.39 -19.12L-11.44 -17.20L-10.84 -16.26L-10.59 -15.40L-10.62 -14.30L-10.79 -13.71L-11.11 -13.03L-11.10 -12.70L-9.34 -10.58L-7.04 -8.38L-6.73 -8.26L-4.29 -9.02L-4.03 -9.23L-3.96 -9.51L-4.05 -9.79L-4.84 -10.31L-5.27 -10.86L-5.46 -11.42L-5.49 -12.00L-5.27 -12.74L-4.84 -13.29L-4.18 -13.68L-3.51 -13.80L-2.93 -13.72L-2.39 -13.47L-1.96 -13.07L-1.65 -12.56L-1.50 -11.90L-1.56 -11.31L-1.74 -10.85L-2.22 -10.24L-2.30 -9.99L-2.16 -9.59L-1.79 -9.42L-0.00 -9.50L1.79 -9.42L2.06 -9.51L2.26 -9.76L2.28 -10.11L1.73 -10.86L1.51 -11.61L1.56 -12.28L1.78 -12.82L2.24 -13.35L2.93 -13.72L3.69 -13.79L4.44 -13.57L4.92 -13.21L5.27 -12.74L5.46 -12.18L5.49 -11.60L5.35 -11.03L5.05 -10.54L4.70 -10.20L4.04 -9.77L3.96 -9.51L4.01 -9.27L4.27 -9.03L6.56 -8.28L6.96 -8.32L9.34 -10.58L11.10 -12.69L11.11 -13.03L10.79 -13.71L10.61 -14.38L10.60 -15.48L10.84 -16.26L11.44 -17.20L11.39 -19.13L11.50 -20.04L11.70 -20.88L12.17 -22.01L12.69 -22.81L13.31 -23.46L13.76 -23.77L14.25 -23.75L14.61 -23.41L14.68 -23.15L14.64 -22.88L14.13 -22.05L13.86 -21.27L13.76 -20.65L13.78 -19.78L13.92 -18.95L14.21 -18.09L14.44 -17.91L15.21 -17.69L15.50 -17.71L15.74 -17.92L16.15 -19.32L16.20 -20.37L16.09 -21.02L15.87 -21.69L15.95 -22.14L16.29 -22.44L16.75 -22.47L17.06 -22.28L17.46 -21.72L17.85 -20.93L18.06 -20.32L18.24 -19.44L18.31 -18.53L18.13 -16.48L17.95 -15.60L17.73 -15.05L17.84 -14.27L17.81 -13.61L17.52 -12.67L16.94 -11.89L16.06 -11.30L15.15 -11.06L13.93 -11.09L13.63 -10.98L11.62 -8.39L9.69 -6.37L9.59 -6.06L9.72 -5.70L10.59 -4.77L11.32 -3.67L11.59 -3.51L11.99 -3.55L16.28 -4.63L16.72 -4.63L17.13 -4.46L17.46 -4.13L20.72 1.15L20.77 1.70L20.66 1.95L20.45 2.16L19.96 2.30L19.41 2.10L19.19 2.10L18.93 2.23L18.80 2.49L18.84 2.82L20.29 5.85L20.28 6.16L20.16 6.45L19.94 6.67L19.65 6.79L19.20 6.74L18.86 6.48L16.15 2.02L15.93 1.81L15.56 1.76L12.08 2.32L11.84 2.44L11.70 2.66L11.74 3.05L12.06 3.30L15.16 3.36L15.58 3.51L15.92 3.81L16.09 4.12L16.24 4.70L18.27 10.29L18.24 10.80L17.91 11.19L17.65 11.29L17.34 11.28L17.05 11.16L16.84 10.95L14.48 5.97L14.34 5.76L14.12 5.65L8.91 5.80L8.50 5.70L7.91 5.27L7.62 5.22L5.66 6.05L3.77 6.60L1.76 6.91L-0.30 7.00L-2.34 6.85L-4.04 6.53L-5.66 6.05L-7.67 5.22L-7.93 5.29L-8.43 5.67L-8.91 5.80L-13.92 5.63L-14.26 5.70L-14.48 5.97L-16.81 10.91L-17.19 11.24L-17.70 11.27L-17.98 11.14L-18.19 10.91L-18.29 10.61L-18.27 10.30L-15.95 3.85L-15.63 3.54L-15.16 3.36L-12.03 3.29L-11.74 3.05L-11.70 2.66L-11.84 2.44L-12.08 2.32L-15.56 1.76L-15.93 1.81L-16.15 2.02L-18.86 6.48L-19.20 6.74L-19.65 6.79L-19.94 6.67L-20.16 6.45L-20.29 6.15L-20.28 5.84L-18.84 2.82L-18.79 2.51L-18.92 2.25L-19.16 2.10L-19.41 2.10L-19.99 2.30L-20.26 2.25L-20.52 2.11L-20.71 1.86L-20.80 1.54ZM16.24 -2.03L16.03 -2.14L15.79 -2.15L12.47 -1.17L12.19 -0.91L12.17 -0.52L12.37 -0.28L12.65 -0.20L15.98 -0.55L16.48 -0.67L16.73 -0.88L16.80 -1.23ZM-16.75 -1.37L-16.81 -1.08L-16.68 -0.80L-16.48 -0.67L-16.01 -0.55L-12.62 -0.20L-12.31 -0.32L-12.15 -0.62L-12.20 -0.93L-12.45 -1.16L-15.82 -2.15L-16.23 -2.04ZM-2.72 -12.26L-2.83 -12.54L-3.06 -12.77L-3.34 -12.88L-3.66 -12.88L-3.94 -12.77L-4.17 -12.54L-4.28 -12.26L-4.28 -11.94L-4.17 -11.66L-3.94 -11.43L-3.66 -11.32L-3.34 -11.32L-3.06 -11.43L-2.83 -11.66L-2.72 -11.94ZM4.29 -12.20L4.19 -12.50L3.99 -12.73L3.71 -12.87L3.40 -12.89L3.10 -12.79L2.87 -12.59L2.73 -12.31L2.71 -12.00L2.81 -11.70L3.01 -11.47L3.29 -11.33L3.60 -11.31L3.90 -11.41L4.13 -11.61L4.27 -11.89ZM-0.00 0.36L1.45 0.12L1.83 -0.03L3.38 -1.17L3.50 -1.47L3.43 -1.75L3.19 -1.96L2.84 -1.97L1.29 -0.87L0.00 -0.61L-1.29 -0.87L-2.84 -1.97L-3.19 -1.96L-3.43 -1.75L-3.50 -1.47L-3.38 -1.17L-1.83 -0.03L-1.45 0.12Z", "Tormenta": "M-8.19 -9.00L-9.55 -9.20L-10.82 -9.71L-11.95 -10.49L-12.87 -11.50L-13.54 -12.70L-13.92 -14.02L-13.99 -15.40L-13.74 -16.75L-13.46 -17.48L-12.99 -18.33L-12.51 -18.95L-11.96 -19.51L-11.16 -20.10L-10.12 -20.61L-9.17 -20.88L-8.04 -21.00L-7.82 -21.10L-7.68 -21.28L-7.29 -22.30L-6.93 -23.00L-6.35 -23.87L-5.84 -24.47L-5.07 -25.19L-4.23 -25.79L-3.53 -26.18L-2.58 -26.57L-1.04 -26.93L-0.26 -27.00L0.78 -26.96L2.33 -26.65L3.07 -26.39L4.00 -25.93L5.27 -25.02L6.34 -23.87L7.06 -22.77L7.82 -21.06L8.11 -20.94L9.20 -21.00L10.36 -20.84L11.29 -20.54L12.16 -20.10L12.95 -19.51L13.64 -18.80L14.29 -17.83L14.68 -16.93L14.89 -16.17L15.00 -15.20L14.97 -14.41L14.80 -13.45L14.54 -12.70L14.10 -11.84L13.64 -11.19L12.96 -10.49L12.34 -10.01L11.66 -9.62L10.36 -9.16L9.20 -9.00L5.82 -9.00L5.60 -8.92L5.44 -8.77L3.16 -4.20L3.17 -3.77L3.34 -3.59L3.59 -3.50L8.10 -3.49L8.29 -3.41L8.46 -3.18L8.45 -2.79L-3.60 13.29L-3.94 13.50L-4.23 13.45L-4.39 13.32L-4.50 13.05L-4.47 12.84L-0.91 2.16L-0.90 1.89L-1.05 1.63L-1.34 1.50L-6.10 1.49L-6.42 1.28L-6.49 0.90L-0.45 -8.22L-0.38 -8.60L-0.55 -8.89L-0.84 -9.00Z", "Gaviota": "M-21.30 -12.63L-19.60 -13.63L-17.76 -14.56L-15.07 -15.60L-13.50 -16.01L-11.92 -16.26L-10.79 -16.34L-9.45 -16.31L-8.29 -16.16L-6.97 -15.86L-4.86 -15.02L-4.06 -14.57L-2.74 -13.66L-1.46 -12.53L-0.38 -11.38L0.06 -11.25L0.40 -11.40L1.46 -12.53L2.74 -13.66L4.12 -14.61L5.33 -15.24L6.43 -15.69L7.78 -16.07L9.43 -16.31L10.79 -16.34L11.92 -16.26L13.50 -16.01L15.07 -15.60L16.78 -14.98L18.68 -14.11L21.36 -12.60L21.61 -12.34L21.70 -11.99L21.62 -11.68L21.43 -11.45L21.15 -11.32L20.85 -11.32L18.81 -12.28L16.99 -13.01L14.88 -13.64L13.06 -13.97L11.66 -14.07L10.47 -14.03L9.39 -13.88L8.33 -13.62L7.26 -13.20L6.13 -12.59L5.18 -11.91L4.20 -11.02L3.29 -9.98L2.43 -8.76L2.38 -8.45L2.57 -7.83L2.59 -7.33L2.47 -6.81L2.20 -6.33L1.79 -5.90L1.23 -5.56L0.63 -5.37L-0.06 -5.30L-0.70 -5.38L-1.28 -5.59L-1.80 -5.91L-2.23 -6.37L-2.49 -6.86L-2.59 -7.34L-2.57 -7.83L-2.38 -8.45L-2.43 -8.76L-3.20 -9.86L-4.18 -10.99L-5.18 -11.91L-6.13 -12.59L-7.09 -13.12L-8.07 -13.53L-9.39 -13.88L-10.74 -14.05L-12.33 -14.04L-13.77 -13.87L-15.38 -13.51L-16.99 -13.01L-18.78 -12.29L-20.94 -11.30L-21.42 -11.44L-21.68 -11.83L-21.63 -12.30Z", "Red": "M17.00 10.00L-17.00 10.00L-17.00 -24.00L17.00 -24.00ZM-15.15 2.17L-15.20 7.60L-15.02 8.02L-14.60 8.20L-9.40 8.20L-8.98 8.02L-8.80 7.60L-8.80 2.40L-8.98 1.98L-9.40 1.80L-14.60 1.80L-14.93 1.90ZM-15.10 -5.93L-15.20 -5.60L-15.20 -0.40L-15.02 0.02L-14.60 0.20L-9.40 0.20L-8.98 0.02L-8.80 -0.40L-8.80 -5.60L-8.98 -6.02L-9.40 -6.20L-14.60 -6.20L-14.83 -6.15ZM-15.02 -14.02L-15.20 -13.60L-15.20 -8.40L-15.02 -7.98L-14.60 -7.80L-9.40 -7.80L-8.98 -7.98L-8.80 -8.40L-8.80 -13.60L-8.98 -14.02L-9.40 -14.20L-14.60 -14.20ZM-14.93 -22.10L-15.10 -21.93L-15.20 -21.60L-15.20 -16.40L-15.02 -15.98L-14.60 -15.80L-9.40 -15.80L-8.98 -15.98L-8.80 -16.40L-8.80 -21.60L-8.98 -22.02L-9.40 -22.20L-14.60 -22.20ZM-6.83 1.85L-7.10 2.07L-7.20 2.40L-7.20 7.60L-7.02 8.02L-6.60 8.20L-1.40 8.20L-0.98 8.02L-0.80 7.60L-0.80 2.40L-0.98 1.98L-1.40 1.80ZM-6.72 -6.19L-7.02 -6.02L-7.20 -5.60L-7.20 -0.40L-7.02 0.02L-6.60 0.20L-1.40 0.20L-0.98 0.02L-0.80 -0.40L-0.80 -5.60L-0.98 -6.02L-1.40 -6.20ZM-6.60 -14.20L-7.02 -14.02L-7.20 -13.60L-7.20 -8.40L-7.02 -7.98L-6.60 -7.80L-1.40 -7.80L-0.98 -7.98L-0.80 -8.40L-0.80 -13.60L-0.98 -14.02L-1.40 -14.20ZM-1.40 -22.20L-6.60 -22.20L-7.02 -22.02L-7.20 -21.60L-7.20 -16.40L-7.02 -15.98L-6.60 -15.80L-1.40 -15.80L-0.98 -15.98L-0.80 -16.40L-0.80 -21.60L-0.98 -22.02ZM6.72 1.81L1.40 1.80L0.98 1.98L0.80 2.40L0.80 7.60L0.98 8.02L1.40 8.20L6.60 8.20L7.02 8.02L7.20 7.60L7.20 2.40L7.02 1.98ZM6.83 -6.15L1.40 -6.20L0.98 -6.02L0.80 -5.60L0.80 -0.40L0.98 0.02L1.40 0.20L6.60 0.20L7.02 0.02L7.20 -0.40L7.20 -5.60L7.10 -5.93ZM6.93 -14.10L6.60 -14.20L1.40 -14.20L0.98 -14.02L0.80 -13.60L0.80 -8.40L0.98 -7.98L1.40 -7.80L6.60 -7.80L7.02 -7.98L7.20 -8.40L7.20 -13.60L7.15 -13.83ZM7.02 -22.02L6.60 -22.20L1.40 -22.20L0.98 -22.02L0.80 -21.60L0.80 -16.40L0.98 -15.98L1.40 -15.80L6.60 -15.80L7.02 -15.98L7.20 -16.40L7.20 -21.60ZM15.10 2.07L14.93 1.90L14.60 1.80L9.40 1.80L8.98 1.98L8.80 2.40L8.80 7.60L8.98 8.02L9.40 8.20L14.60 8.20L15.02 8.02L15.20 7.60L15.20 2.40ZM15.15 -5.83L14.93 -6.10L14.60 -6.20L9.40 -6.20L8.98 -6.02L8.80 -5.60L8.80 -0.40L8.98 0.02L9.40 0.20L14.60 0.20L15.02 0.02L15.20 -0.40ZM15.19 -13.72L14.93 -14.10L14.60 -14.20L9.40 -14.20L8.98 -14.02L8.80 -13.60L8.80 -8.40L8.98 -7.98L9.40 -7.80L14.60 -7.80L15.02 -7.98L15.20 -8.40ZM15.20 -21.60L15.02 -22.02L14.60 -22.20L9.40 -22.20L8.98 -22.02L8.80 -21.60L8.80 -16.40L8.98 -15.98L9.40 -15.80L14.60 -15.80L15.02 -15.98L15.20 -16.40Z", "Faro": "M-19.99 -13.00L-20.00 -25.00L-6.00 -19.00ZM-5.60 -19.00L-5.40 -19.16L-5.30 -19.41L-5.30 -20.72L-5.37 -20.96L-5.73 -21.19L-7.11 -21.22L-7.28 -21.40L-7.26 -21.65L-0.05 -28.30L0.21 -28.22L7.20 -21.72L7.29 -21.56L7.27 -21.36L7.11 -21.22L5.70 -21.19L5.46 -21.07L5.31 -20.82L5.31 -19.38L5.40 -19.16L5.60 -19.00L5.40 -18.84L5.30 -18.59L5.29 -15.44L5.09 -15.21L4.30 -15.14L4.12 -14.97L4.04 -14.74L4.46 -11.00L-4.46 -11.00L-4.04 -14.77L-4.13 -14.99L-4.32 -15.15L-5.08 -15.21L-5.28 -15.39L-5.30 -18.59L-5.40 -18.84ZM6.00 -19.00L19.99 -25.00L20.00 -25.00L20.00 -13.00ZM-7.00 11.00L-5.62 -1.00L5.62 -1.00L7.00 11.00ZM-5.33 -3.50L-4.69 -9.00L4.69 -9.00L5.33 -3.50Z", "Star": "M0.00 -20.00L-2.30 -5.54L-14.14 -14.14L-5.54 -2.30L-20.00 -0.00L-5.54 2.30L-14.14 14.14L-2.30 5.54L-0.00 20.00L2.30 5.54L14.14 14.14L5.54 2.30L20.00 0.00L5.54 -2.30L14.14 -14.14L2.30 -5.54Z", "Caballito": "M-7.97 -17.89L-7.47 -17.88L-4.32 -18.49L-0.96 -19.50L0.08 -20.91L1.54 -22.00L2.63 -25.39L2.79 -25.64L3.00 -25.77L3.39 -25.77L3.70 -25.54L5.22 -22.50L5.55 -22.20L5.88 -22.14L6.21 -22.25L7.81 -23.57L8.25 -23.54L8.56 -23.21L8.59 -22.90L7.98 -18.64L7.62 -18.05L7.52 -16.95L7.27 -16.12L6.86 -15.36L6.32 -14.67L6.23 -14.28L6.31 -13.99L8.28 -10.39L9.16 -8.18L8.89 -8.34L4.43 -9.05L4.08 -8.92L3.95 -8.57L4.06 -8.30L4.31 -8.16L8.74 -7.45L9.07 -7.54L9.25 -7.84L9.46 -6.66L9.53 -5.31L9.46 -3.92L9.28 -2.75L8.85 -1.14L8.17 0.55L4.43 -0.05L4.17 0.01L4.00 0.20L3.98 0.57L4.26 0.83L7.76 1.39L6.74 3.13L5.56 4.75L5.48 5.00L5.46 5.84L5.26 6.43L3.01 10.48L1.43 12.73L1.29 13.09L1.31 13.37L1.46 13.64L1.71 13.82L2.02 13.87L2.29 13.80L3.19 13.26L3.79 13.00L4.29 12.90L4.84 12.97L5.28 13.21L5.79 13.69L6.30 14.43L6.57 15.01L6.75 15.71L6.77 16.21L6.60 16.90L6.31 17.50L5.80 18.25L5.17 18.94L4.60 19.37L3.93 19.67L3.09 19.79L2.17 19.72L1.23 19.50L0.37 19.15L-0.25 18.76L-0.83 18.24L-1.27 17.62L-1.69 16.71L-1.96 15.82L-2.15 14.71L-2.20 13.77L-2.10 12.71L-1.70 11.46L-0.41 8.72L0.83 5.21L0.91 4.76L-0.24 1.72L-0.96 -0.69L-1.14 -0.90L-1.39 -1.02L-2.12 -1.00L-2.58 -1.11L-3.29 -1.56L-3.69 -2.05L-4.00 -2.60L-4.24 -3.30L-4.36 -3.99L-4.39 -4.86L-4.28 -5.73L-4.03 -6.52L-3.69 -7.15L-3.33 -7.60L-2.87 -7.96L-2.36 -8.16L-1.58 -8.25L-1.36 -8.39L-1.20 -8.62L-0.46 -11.93L0.27 -14.04L0.26 -14.41L-0.45 -15.35L-0.86 -16.05L-1.11 -16.24L-1.37 -16.31L-3.79 -16.05L-7.28 -15.38L-7.56 -15.27L-8.19 -14.79L-8.75 -14.62L-9.36 -14.64L-10.01 -14.91L-10.50 -15.41L-10.77 -16.06L-10.76 -16.76L-10.49 -17.41L-9.99 -17.90L-9.34 -18.17L-8.64 -18.16ZM1.13 16.35L1.43 16.78L2.04 17.17L2.74 17.42L3.41 17.49L3.91 17.22L4.45 16.68L4.80 16.13L4.85 15.73L4.57 15.05L4.14 14.80L3.77 14.84L2.62 15.39L2.28 15.37L1.85 15.18L1.57 15.18L1.23 15.35L1.04 15.63L1.00 15.94ZM4.51 -18.67L4.33 -19.04L4.02 -19.31L3.64 -19.44L3.23 -19.41L2.86 -19.23L2.59 -18.93L2.46 -18.54L2.49 -18.13L2.67 -17.76L2.98 -17.49L3.36 -17.36L3.77 -17.39L4.14 -17.57L4.41 -17.88L4.54 -18.26ZM4.26 -3.67L8.83 -2.95L9.14 -3.10L9.25 -3.43L9.14 -3.70L8.89 -3.84L4.46 -4.55L4.15 -4.47L3.97 -4.24L4.00 -3.90Z", "Estrella": "M-8.45 -0.10L-8.67 -0.64L-9.10 -1.15L-17.37 -7.50L-17.59 -7.78L-17.72 -8.11L-17.75 -8.46L-17.67 -8.80L-17.29 -9.32L-16.70 -9.57L-6.27 -9.85L-5.71 -9.97L-5.21 -10.25L-4.86 -10.59L-4.57 -11.08L-1.11 -20.86L-0.81 -21.29L-0.35 -21.55L0.06 -21.60L0.51 -21.49L0.85 -21.25L1.09 -20.91L4.57 -11.08L4.86 -10.59L5.29 -10.19L5.71 -9.97L6.27 -9.85L16.70 -9.57L17.04 -9.47L17.34 -9.28L17.69 -8.75L17.75 -8.40L17.70 -8.05L17.37 -7.50L9.10 -1.15L8.77 -0.80L8.51 -0.29L8.39 0.28L8.45 0.85L11.41 10.85L11.41 11.26L11.28 11.65L10.98 12.01L10.62 12.21L10.10 12.27L9.60 12.10L1.05 6.23L0.62 6.02L0.05 5.93L-0.52 6.00L-1.05 6.23L-9.65 12.13L-10.27 12.28L-10.88 12.08L-11.15 11.85L-11.33 11.55L-11.42 11.20L-11.41 10.85L-8.45 0.85L-8.39 0.37ZM0.65 -11.26L0.31 -11.45L-0.08 -11.50L-0.45 -11.39L-0.76 -11.15L-0.95 -10.81L-1.00 -10.42L-0.89 -10.05L-0.65 -9.74L-0.31 -9.55L0.08 -9.50L0.45 -9.61L0.76 -9.85L0.95 -10.19L1.00 -10.58L0.89 -10.95ZM0.71 -16.21L0.38 -16.42L0.00 -16.50L-0.38 -16.42L-0.71 -16.21L-0.92 -15.88L-1.00 -15.50L-0.92 -15.12L-0.71 -14.79L-0.38 -14.58L0.00 -14.50L0.38 -14.58L0.71 -14.79L0.92 -15.12L1.00 -15.50L0.92 -15.88ZM-6.37 -5.97L-6.68 -6.21L-7.05 -6.31L-7.44 -6.27L-7.78 -6.08L-8.02 -5.77L-8.13 -5.40L-8.08 -5.01L-7.89 -4.67L-7.59 -4.43L-7.21 -4.32L-6.82 -4.37L-6.48 -4.56L-6.24 -4.86L-6.14 -5.24L-6.18 -5.63ZM-11.08 -7.45L-11.37 -7.72L-11.73 -7.85L-12.12 -7.84L-12.48 -7.67L-12.74 -7.39L-12.88 -7.02L-12.86 -6.63L-12.70 -6.27L-12.41 -6.01L-12.04 -5.88L-11.65 -5.89L-11.30 -6.05L-11.04 -6.34L-10.90 -6.71L-10.92 -7.10ZM-3.56 2.55L-3.82 2.26L-4.17 2.10L-4.56 2.08L-4.93 2.21L-5.22 2.48L-5.38 2.83L-5.40 3.22L-5.26 3.59L-5.00 3.88L-4.64 4.04L-4.25 4.06L-3.89 3.92L-3.60 3.66L-3.44 3.30L-3.42 2.91ZM-6.46 6.66L-6.70 6.35L-7.04 6.16L-7.43 6.12L-7.80 6.22L-8.11 6.46L-8.30 6.80L-8.34 7.19L-8.24 7.57L-8.00 7.87L-7.66 8.06L-7.27 8.11L-6.89 8.00L-6.59 7.76L-6.40 7.42L-6.35 7.03ZM5.33 2.68L5.12 2.36L4.79 2.14L4.41 2.07L4.03 2.14L3.70 2.36L3.48 2.68L3.41 3.07L3.48 3.45L3.70 3.77L4.03 3.99L4.41 4.07L4.79 3.99L5.12 3.77L5.33 3.45L5.41 3.07ZM8.30 6.80L8.11 6.46L7.80 6.22L7.43 6.12L7.04 6.16L6.70 6.35L6.46 6.66L6.35 7.03L6.40 7.42L6.59 7.76L6.89 8.00L7.27 8.11L7.66 8.06L8.00 7.87L8.24 7.57L8.34 7.19ZM8.11 -5.55L7.94 -5.91L7.66 -6.17L7.29 -6.31L6.90 -6.29L6.55 -6.13L6.28 -5.84L6.15 -5.47L6.16 -5.08L6.32 -4.73L6.61 -4.46L6.98 -4.33L7.37 -4.35L7.72 -4.51L7.99 -4.80L8.12 -5.16ZM12.88 -7.02L12.74 -7.39L12.48 -7.67L12.12 -7.84L11.73 -7.85L11.37 -7.72L11.08 -7.45L10.92 -7.10L10.90 -6.71L11.04 -6.34L11.30 -6.05L11.65 -5.89L12.04 -5.88L12.41 -6.01L12.70 -6.27L12.86 -6.63ZM2.60 -3.00L2.40 -3.99L1.84 -4.84L0.99 -5.40L0.00 -5.60L-0.99 -5.40L-1.84 -4.84L-2.40 -3.99L-2.60 -3.00L-2.40 -2.01L-1.84 -1.16L-0.99 -0.60L0.00 -0.40L0.99 -0.60L1.84 -1.16L2.40 -2.01ZM1.60 -3.00L1.48 -2.39L1.13 -1.87L0.61 -1.52L0.00 -1.40L-0.61 -1.52L-1.13 -1.87L-1.48 -2.39L-1.60 -3.00L-1.48 -3.61L-1.13 -4.13L-0.61 -4.48L0.00 -4.60L0.61 -4.48L1.13 -4.13L1.48 -3.61Z"};
+const SPECIES = [
+  { k: 'sardina', name: 'Sardina', col: '#2E6EBE', icon: 'Sardina' },
+  { k: 'pulpo', name: 'Pulpo', col: '#784AA0', icon: 'Pulpo' },
+  { k: 'tortuga', name: 'Tortuga', col: '#2D8C5F', icon: 'Tortuga' },
+  { k: 'cangrejo', name: 'Cangrejo', col: '#CD5528', icon: 'Cangrejo' },
+  { k: 'estrella', name: 'Estrella', col: '#C2456E', icon: 'Estrella' },
+  { k: 'caballito', name: 'Caballito', col: '#D39A1C', icon: 'Caballito' },
+];
+const SP = Object.fromEntries(SPECIES.map(s => [s.k, s]));
+const SPECIAL = {
+  tormenta: { name: 'Tormenta', icon: 'Tormenta', solo: true, help: 'Anula la ronda: todas las cartas (manos, mesa y banco) vuelven al mazo y se reparte de nuevo.' },
+  gaviota: { name: 'Gaviota', icon: 'Gaviota', solo: true, help: 'Robas un pez de valor 5 o menos de la cesta rival.' },
+  red: { name: 'Red', icon: 'Red', solo: false, help: 'Junto a un pez: si ganas, te llevas 3 cartas.' },
+  faro: { name: 'Faro', icon: 'Faro', solo: false, help: 'Antes de revelar, mueves la rosa un paso (izquierda o derecha).' },
+};
+// clockwise: N, E, S, W
+const WINDS = [
+  { k: 'T', name: 'Tramuntana', dir: 'Norte', rule: 'Gana la carta más alta.' },
+  { k: 'L', name: 'Llevant', dir: 'Este', rule: 'Gana la más alta de la especie que más vale en el banco.' },
+  { k: 'M', name: 'Migjorn', dir: 'Sur', rule: 'Gana la carta más baja.' },
+  { k: 'P', name: 'Ponent', dir: 'Oeste', rule: 'Se gira la ruleta: especie, gana su pez más alto (si nadie la jugó, se gira otra vez); Tramuntana, la más alta; Migjorn, la más baja.' },
+];
+const HAND = 6;
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, Math.round(ms * FXK())));
+let RNG = Math.random;
+const rnd = n => Math.floor(RNG() * n);
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+/* ---------------------------------------------------------------- cards */
+function cardSVG(c) {
+  if (!c) return '';
+  if (c.back) {
+    return `<svg viewBox="-31.5 -44 63 88"><rect x="-31.5" y="-44" width="63" height="88" rx="4" fill="#0B0D12"/>
+      <rect x="-28.5" y="-41" width="57" height="82" rx="2.5" fill="none" stroke="#E1B437" stroke-opacity=".4" stroke-width=".7"/>
+      <path d="${PATHS.Star}" fill="#E1B437"/></svg>`;
+  }
+  const special = c.kind === 'special';
+  const acc = special ? '#E1B437' : '#EFE8D6';
+  const mid = special ? '#2D343E' : SP[c.sp].col;
+  const name = special ? SPECIAL[c.type].name : SP[c.sp].name;
+  const icon = special ? SPECIAL[c.type].icon : SP[c.sp].icon;
+  const nums = special ? '' : `<text x="-20.5" y="-29.6" font-size="${c.v > 9 ? 8.5 : 10}">${c.v}</text><text x="20.5" y="-29.6" font-size="${c.v > 9 ? 8.5 : 10}">${c.v}</text>`;
+  return `<svg viewBox="-31.5 -44 63 88" role="img" aria-label="${name}${special ? '' : ' ' + c.v}">
+    <rect x="-31.5" y="-44" width="63" height="88" rx="4" fill="${acc}"/>
+    <rect x="-29.5" y="-42" width="59" height="84" rx="2.4" fill="${mid}"/>
+    <path d="${PATHS[icon]}" fill="${acc}" fill-rule="evenodd"/>
+    <g fill="${acc}" font-family="Baloo 2, Arial, sans-serif" font-weight="800" text-anchor="middle">${nums}
+    <text x="0" y="29.6" font-size="${name.length > 7 ? 6.6 : 7.2}" letter-spacing=".3">${name.toUpperCase()}</text></g></svg>`;
+}
+const cardDiv = c => `<div class="card">${cardSVG(c)}</div>`;
+
+
+/* ================================================================ CON AMIGOS (1 contra 1 o 2 contra 2, cada uno en su dispositivo)
+   Lockstep: todos los navegadores ejecutan el mismo motor con la misma semilla; solo viajan las decisiones.
+   Asientos canónicos: 0 anfitrión · 1 rival · 2 pareja del anfitrión · 3 rival (2 contra 2).
+   Los asientos vacíos los juega el ordenador: el anfitrión decide por ellos y publica sus jugadas.
+   Firebase Realtime Database + usuario anónimo (sin registro).
+   rooms/<CODE>              {host, mode, seed, status, created, seats:{<n>:{uid, name, bot}}}
+   rooms/<CODE>/log/<n>      {entries:[{k, v}]} — lo escribe solo el dueño del asiento */
+let ONLINE = null;
+const NET = { db: null, me: null, tried: false, unsubs: [], unsubRoom: null, queue: Promise.resolve() };
+function seeded(a) {
+  return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const byId = id => id == null ? null : (ALL.find(c => c.id === id) || null);
+const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const LS = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+const roomUrl = code => location.origin + location.pathname + '?sala=' + code;
+const NSEATS = mode => mode === '2v2' ? 4 : 2;
+const BOT_NAMES = { 1: 'Tomeu', 2: 'Pep', 3: 'Aina' };
+const teamOfSeat = s => s % 2;               // 0,2 = pareja del anfitrión · 1,3 = la otra
+
+/* --- decisions ------------------------------------------------------ */
+// a seat this browser decides for (its own, and the AI seats if it is the host)
+function ownDecision(seat, kind, askFn, enc = v => v, dec = v => v) {
+  const O = ONLINE, L = O.own[seat];
+  if (L.n < L.log.length) {                          // resuming: replay what was already decided
+    const e = L.log[L.n++];
+    if (e.k !== kind) desync();
+    return Promise.resolve(dec(e.v));
+  }
+  return Promise.resolve(askFn()).then(v => {
+    if (ONLINE !== O) return v;
+    L.log.push({ k: kind, v: enc(v) }); L.n++;
+    const entries = L.log.slice();
+    NET.queue = NET.queue.then(() => NET.db.ref(`rooms/${O.id}/log/${seat}`).set({ entries }))
+      .catch(() => netProblem('No se ha podido enviar la jugada. Revisa la conexión y recarga la página: la partida se recupera.'));
+    return v;
+  });
+}
+function localDecision(kind, askFn, enc, dec) { return ONLINE ? ownDecision(ONLINE.mySeat, kind, askFn, enc, dec) : askFn(); }
+// AI seats: offline they think locally; online only the host thinks (with its own randomness) and publishes
+function withLocalRng(fn) { const r = RNG; RNG = Math.random; try { return fn(); } finally { RNG = r; } }
+const PLAY_ENC = v => ({ fish: v.fish ? v.fish.id : null, special: v.special ? v.special.id : null, faro: v.faro ?? null });
+const PLAY_DEC = v => ({ fish: byId(v.fish), special: byId(v.special), faro: v.faro ?? null });
+function botPlay(id) { return ONLINE ? ownDecision(P(id).seat, 'play', () => withLocalRng(() => aiChoose(id)), PLAY_ENC, PLAY_DEC) : aiChoose(id); }
+function botRotate(id) { return ONLINE ? ownDecision(P(id).seat, 'rotate', () => withLocalRng(() => aiRotate(id))) : aiRotate(id); }
+function remoteReady(id) { const L = ONLINE && ONLINE.their[P(id).seat]; return !!L && L.log.length > L.n; }
+function nextRemote(kind, id) {
+  const O = ONLINE, L = O.their[P(id).seat];
+  return new Promise(res => {
+    const take = () => {
+      if (ONLINE !== O) return true;
+      if (L.log.length <= L.n) return false;
+      const e = L.log[L.n++]; if (e.k !== kind) desync();
+      res(e.v); return true;
+    };
+    if (!take()) L.waiters.push(take);
+  });
+}
+// tie between two players of the losing side: humans turn the rose before the AI, then the lowest seat
+function rotPref(id, m) {
+  if (!ONLINE) return id === 'h';
+  const a = P(id), b = P(m);
+  return (!a.bot && b.bot) || (!!a.bot === !!b.bot && a.seat < b.seat);
+}
+function desync() { netProblem('La partida se ha desincronizado. Recarga la página para recuperarla.'); }
+function netProblem(msg) { const n = $('net-note'); if (!n) return; n.textContent = msg; n.hidden = false; }
+// debug hook (tests): canonical snapshot of the shared state, comparable between screens
+function traceState(tag, x) {
+  if (!window.TRACE) return;
+  const O = ONLINE; if (!O) return;
+  const t0 = teamOfSeat(O.mySeat) === 0 ? 'A' : 'B', t1 = t0 === 'A' ? 'B' : 'A';   // pareja del asiento 0 first
+  const ids = a => a.map(c => c.id).join(',');
+  window.TRACE.push({ tag, round: S.round, wind: S.wind, deck: ids(S.deck), bank: ids(S.bank), b0: ids(S.basket[t0]), b1: ids(S.basket[t1]),
+    hands: PL().map(p => S.hand[p.id].map(c => c.id).sort((a, b) => a - b).join(',')).join('|'), x: x ? JSON.stringify({ win: x.win != null ? P(x.win).seat : null, face: x.face, wind: x.wind }) : '' });
+}
+
+/* --- connection ------------------------------------------------------- */
+async function netInit() {
+  if (NET.db) return true;
+  if (NET.tried) return false;
+  NET.tried = true;
+  try {
+    if (!window.firebase || !window.FIREBASE_CONFIG || !FIREBASE_CONFIG.databaseURL) return false;
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    const cred = await firebase.auth().signInAnonymously();
+    NET.me = cred.user.uid; NET.db = firebase.database();
+    return true;
+  } catch (e) { NET.tried = false; return false; }
+}
+const myName = () => LS.get('tr-name', '') || 'Amigo';
+const myRooms = () => LS.get('tr-rooms', []);
+function rememberRoom(code) { LS.set('tr-rooms', [code, ...myRooms().filter(c => c !== code)].slice(0, 8)); }
+const seatsOf = g => g.seats || {};
+const mySeatIn = g => { for (const [s, v] of Object.entries(seatsOf(g))) if (v && v.uid === NET.me && !v.bot) return +s; return null; };
+const humans = g => Object.values(seatsOf(g)).filter(v => v && !v.bot).length;
+const hostName = g => (seatsOf(g)[0] || {}).name || 'Tu amigo';
+
+/* --- lobby ------------------------------------------------------------ */
+function lobbyMsg(html) { $('lobby-box').innerHTML = html; }
+function stopRoomWatch() { if (NET.unsubRoom) { NET.unsubRoom(); NET.unsubRoom = null; } }
+function watchRoom(code, fn) {
+  stopRoomWatch();
+  const ref = NET.db.ref('rooms/' + code);
+  let live = true;                                   // Firebase may answer synchronously from its cache
+  const cb = s => { if (live) fn(s.val()); };
+  NET.unsubRoom = () => { live = false; ref.off('value', cb); };
+  ref.on('value', cb);
+}
+async function showLobby(code) {
+  closeModal(); gameId++; pending = null;
+  if (ONLINE) leaveOnline();
+  stopRoomWatch();
+  MODE = '1v1';
+  $('menu').hidden = true; $('game').hidden = true; $('lobby').hidden = false;
+  setAmbient(null);
+  lobbyMsg('<p class="lob-note">Conectando…</p>');
+  const ok = await netInit();
+  if (!ok) { lobbyMsg('<div class="lob-card"><h3>No se ha podido conectar</h3><p>Revisa tu conexión a internet y vuelve a intentarlo.</p><div class="actions"><button class="btn primary" type="button" id="lob-retry">Reintentar</button></div></div>'); return; }
+  if (code) return openRoom(code);
+  renderHome();
+}
+let newMode = '1v1';
+function renderHome() {
+  const name = LS.get('tr-name', '');
+  let h = `<div class="lob-card"><h3>Nueva partida con amigos</h3>
+    <p>Crea la partida y envía el enlace. Sin registros.</p>
+    <div class="lob-modes" role="radiogroup" aria-label="Tipo de partida">
+      <button type="button" class="lob-mode${newMode === '1v1' ? ' on' : ''}" data-newmode="1v1" role="radio" aria-checked="${newMode === '1v1'}"><b>1 contra 1</b><span>Tú contra un amigo</span></button>
+      <button type="button" class="lob-mode${newMode === '2v2' ? ' on' : ''}" data-newmode="2v2" role="radio" aria-checked="${newMode === '2v2'}"><b>2 contra 2</b><span>Por parejas, hasta 4 amigos. Si falta alguien, Tomeu, Pep o Aina ocupan su sitio.</span></button>
+    </div>
+    <label class="lob-name">Tu nombre <small>(opcional)</small><input id="lob-name" maxlength="16" placeholder="Ej.: Miguel" value="${esc(name)}" autocomplete="nickname"></label>
+    <div class="actions"><button class="btn primary" type="button" id="lob-create">Crear partida</button></div></div>`;
+  const rooms = myRooms();
+  if (rooms.length) h += `<div class="lob-card"><h3>Tus partidas recientes</h3><ul class="lob-list">${rooms.map(c => `<li><span>Partida <b>${esc(c)}</b></span><button class="btn" type="button" data-room="${esc(c)}">Abrir</button></li>`).join('')}</ul></div>`;
+  lobbyMsg(h);
+}
+function saveName() { const i = $('lob-name'); if (i) LS.set('tr-name', i.value.trim().slice(0, 16)); }
+const CODE_CH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+async function createGame() {
+  saveName();
+  for (let tries = 0; tries < 5; tries++) {
+    let code = ''; for (let i = 0; i < 6; i++) code += CODE_CH[Math.floor(Math.random() * CODE_CH.length)];
+    try {
+      await NET.db.ref('rooms/' + code).set({ host: NET.me, mode: newMode, seed: (Math.random() * 4294967295) >>> 0, status: 'waiting',
+        created: firebase.database.ServerValue.TIMESTAMP, seats: { 0: { uid: NET.me, name: myName() } } });
+      rememberRoom(code);
+      history.replaceState(null, '', '?sala=' + code);
+      return openRoom(code);
+    } catch (e) { /* code taken (permission denied): try another */ }
+  }
+  lobbyToast('No se ha podido crear la partida. Inténtalo de nuevo.');
+}
+async function openRoom(code) {
+  code = String(code).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  let g;
+  try { g = (await NET.db.ref('rooms/' + code).get()).val(); } catch (e) { g = null; }
+  if (!g || !g.seats) { lobbyMsg(`<div class="lob-card"><h3>No existe la partida ${esc(code)}</h3><p>Puede que el enlace esté mal copiado. Pide que te lo vuelvan a enviar, o crea una partida nueva.</p><div class="actions"><button class="btn primary" type="button" id="lob-home">Crear una partida</button></div></div>`); return; }
+  rememberIfMine(code, g);
+  watchRoom(code, v => roomChanged(code, v));
+}
+function rememberIfMine(code, g) { if (mySeatIn(g) != null) rememberRoom(code); }
+// one handler for every lobby state: waiting room, invitation, full, started
+function roomChanged(code, g) {
+  if (!g || !g.seats) return;
+  const mine = mySeatIn(g), n = NSEATS(g.mode);
+  if (g.status !== 'waiting') {
+    if (mine != null) { stopRoomWatch(); rememberRoom(code); return enterGame(code, g); }
+    return lobbyMsg(`<div class="lob-card"><h3>Esta partida ya ha empezado</h3><p>${esc(hostName(g))} ya está jugando. Crea tu propia partida e invita a quien quieras.</p><div class="actions"><button class="btn primary" type="button" id="lob-home">Crear una partida</button></div></div>`);
+  }
+  const isHost = g.host === NET.me;
+  // 1 contra 1: the host starts as soon as the friend sits down
+  if (isHost && g.mode !== '2v2' && humans(g) >= 2) return startRoom(code, g);
+  if (mine != null) return renderWaiting(code, g, isHost);
+  const free = [...Array(n).keys()].filter(s => !seatsOf(g)[s]);
+  if (!free.length) return lobbyMsg(`<div class="lob-card"><h3>Esta partida ya está completa</h3><p>Crea tu propia partida e invita a quien quieras.</p><div class="actions"><button class="btn primary" type="button" id="lob-home">Crear una partida</button></div></div>`);
+  renderInvite(code, g, free);
+}
+function seatLine(g, s) {
+  const v = seatsOf(g)[s];
+  const who = v ? `<b>${esc(v.name)}</b>${v.uid === NET.me ? ' (tú)' : ''}` : `<span class="lob-free">Libre · si no entra nadie, juega ${BOT_NAMES[s]}</span>`;
+  return `<li><span>${who}</span></li>`;
+}
+function teamsHtml(g) {
+  if (g.mode !== '2v2') return '';
+  return `<div class="lob-teams"><div><h4>Pareja 1</h4><ul class="lob-list">${seatLine(g, 0)}${seatLine(g, 2)}</ul></div>
+    <div><h4>Pareja 2</h4><ul class="lob-list">${seatLine(g, 1)}${seatLine(g, 3)}</ul></div></div>`;
+}
+function renderInvite(code, g, free) {
+  const name = `<label class="lob-name">Tu nombre <small>(opcional)</small><input id="lob-name" maxlength="16" placeholder="Ej.: Aina" value="${esc(LS.get('tr-name', ''))}" autocomplete="nickname"></label>`;
+  if (g.mode !== '2v2') {
+    return lobbyMsg(`<div class="lob-card"><h3>${esc(hostName(g))} te reta a Tramuntana</h3><p>Partida 1 contra 1.</p>${name}
+      <div class="actions"><button class="btn primary" type="button" data-join="${esc(code)}" data-seat="1">Entrar en la partida</button></div></div>`);
+  }
+  const partner = free.includes(2), rival = free.filter(s => s % 2 === 1);
+  lobbyMsg(`<div class="lob-card"><h3>${esc(hostName(g))} te invita a Tramuntana</h3><p>Partida 2 contra 2 por parejas. Elige tu sitio:</p>${teamsHtml(g)}${name}
+    <div class="actions">
+      ${partner ? `<button class="btn primary" type="button" data-join="${esc(code)}" data-seat="2">Jugar con ${esc(hostName(g))}</button>` : ''}
+      ${rival.length ? `<button class="btn${partner ? '' : ' primary'}" type="button" data-join="${esc(code)}" data-seat="${rival[0]}">Jugar contra ${esc(hostName(g))}</button>` : ''}
+    </div></div>`);
+}
+async function joinGame(code, seat) {
+  saveName();
+  const ref = NET.db.ref(`rooms/${code}/seats/${seat}`);
+  try { await ref.set({ uid: NET.me, name: myName() }); rememberRoom(code); }
+  catch (e) { lobbyToast('Ese sitio se acaba de ocupar. Elige otro.'); }
+}
+function renderWaiting(code, g, isHost) {
+  const url = roomUrl(code);
+  const text = g.mode === '2v2' ? '¿Echamos una partida a Tramuntana por parejas? 🌬️🃏 ' : '¿Echamos una partida a Tramuntana? 🌬️🃏 ';
+  const wa = 'https://wa.me/?text=' + encodeURIComponent(text + url);
+  const share = `<p class="lob-link"><input id="lob-url" readonly value="${esc(url)}"></p>
+    <div class="actions"><button class="btn${isHost && g.mode === '2v2' ? '' : ' primary'}" type="button" id="lob-share">${navigator.share ? 'Compartir enlace' : 'Copiar enlace'}</button>
+      <a class="btn" href="${wa}" target="_blank" rel="noopener">WhatsApp</a></div>`;
+  if (!isHost && g.mode !== '2v2') return lobbyMsg(`<div class="lob-card wait"><h3>Ya estás dentro</h3><p class="lob-note">Empezando la partida con ${esc(hostName(g))}…</p></div>`);
+  if (g.mode !== '2v2') {
+    return lobbyMsg(`<div class="lob-card wait"><h3>Envía este enlace a tu amigo</h3>${share}
+      <p class="lob-note">Código de la partida: <b>${esc(code)}</b>. Esperando a que entre tu amigo… La partida empezará sola.</p></div>`);
+  }
+  const h = humans(g), friends = h - 1;
+  const start = isHost
+    ? `<div class="actions"><button class="btn primary" type="button" id="lob-start" data-code="${esc(code)}" ${friends ? '' : 'disabled'}>${h >= 4 ? 'Empezar la partida' : 'Empezar ya'}</button></div>
+       <p class="lob-note">${friends ? `Hay ${h} jugadores. Puedes esperar a que entren más o empezar ya.` : 'Esperando a que entre al menos un amigo…'}</p>`
+    : `<p class="lob-note">Esperando a que ${esc(hostName(g))} empiece la partida…</p>`;
+  lobbyMsg(`<div class="lob-card wait"><h3>${isHost ? 'Partida 2 contra 2: invita a tus amigos' : 'Ya estás dentro'}</h3>
+    ${isHost ? share : ''}${teamsHtml(g)}${start}
+    <p class="lob-note">Código de la partida: <b>${esc(code)}</b>.</p></div>`);
+}
+async function startRoom(code, g) {
+  const upd = { status: 'playing' };
+  for (let s = 0; s < NSEATS(g.mode); s++) if (!seatsOf(g)[s]) upd['seats/' + s] = { uid: NET.me, name: BOT_NAMES[s], bot: true };
+  try { await NET.db.ref('rooms/' + code).update(upd); }
+  catch (e) { lobbyToast('No se ha podido empezar. Inténtalo de nuevo.'); }
+}
+async function shareLink() {
+  const url = $('lob-url').value;
+  if (navigator.share) { try { await navigator.share({ title: 'Tramuntana', text: '¿Echamos una partida a Tramuntana? 🌬️🃏', url }); return; } catch (e) { /* cancelled */ } }
+  try { await navigator.clipboard.writeText(url); lobbyToast('Enlace copiado'); } catch (e) { $('lob-url').select(); }
+}
+function lobbyToast(t) { const n = document.createElement('p'); n.className = 'lob-toast'; n.textContent = t; $('lobby-box').prepend(n); setTimeout(() => n.remove(), 3000); }
+
+/* --- game ------------------------------------------------------------- */
+async function enterGame(code, g) {
+  stopRoomWatch();
+  if (NET.entering === code || (ONLINE && ONLINE.id === code)) return;
+  NET.entering = code;
+  try { await enterGame2(code, g); } finally { NET.entering = null; }
+}
+async function enterGame2(code, g) {
+  const n = NSEATS(g.mode), seats = seatsOf(g), mySeat = mySeatIn(g), isHost = g.host === NET.me;
+  const owned = [...Array(n).keys()].filter(s => s === mySeat || (isHost && seats[s] && seats[s].bot));
+  const own = {}, their = {};
+  for (const s of owned) {
+    let log = [];
+    try { const d = (await NET.db.ref(`rooms/${code}/log/${s}`).get()).val(); log = (d && d.entries) || []; } catch (e) {}
+    own[s] = { log, n: 0 };
+  }
+  for (let s = 0; s < n; s++) if (!own[s]) their[s] = { log: [], n: 0, waiters: [] };
+  ONLINE = { id: code, mySeat, host: isHost, seed: g.seed, mode: g.mode, own, their,
+    get replaying() { const L = this.own[this.mySeat]; return L.n < L.log.length; } };
+  const O = ONLINE;
+  NET.unsubs = [];
+  for (const s of Object.keys(their)) {
+    const ref = NET.db.ref(`rooms/${code}/log/${s}`), L = their[s];
+    const cb = snap => {
+      if (ONLINE !== O) return;
+      const v = snap.val(), e = (v && v.entries) || [];
+      if (e.length > L.log.length) { L.log = e.slice(); L.waiters = L.waiters.filter(w => !w()); }
+    };
+    ref.on('value', cb, () => netProblem('Se ha perdido la conexión con la partida. Recarga la página para recuperarla.'));
+    NET.unsubs.push(() => ref.off('value', cb));
+  }
+  // players in canonical seat order (same deal on every screen); my side is always team A on my screen
+  const myTeam = teamOfSeat(mySeat), rivalIds = ['c', 'a'];
+  const players = [];
+  for (let s = 0; s < n; s++) {
+    const v = seats[s] || { name: BOT_NAMES[s], bot: true }, mine = s === mySeat, team = teamOfSeat(s) === myTeam ? 'A' : 'B';
+    const id = mine ? 'h' : team === 'A' ? 'p' : rivalIds.shift();
+    const bot = !!v.bot;
+    players.push({ id, seat: s, name: mine ? 'Tú' : v.name, team, bot, ai: bot && isHost, remote: !mine && !(bot && isHost) });
+  }
+  const nameOf = id => players.find(p => p.id === id).name;
+  const teams = n === 4
+    ? { A: `${nameOf('p')} y tú`, B: `${nameOf('c')} y ${nameOf('a')}` }
+    : { A: 'Tú', B: nameOf('c') };
+  SETUPS.online = { mareas: 1, players, teams };
+  $('net-note').hidden = true;
+  if (location.search.indexOf(code) < 0) history.replaceState(null, '', '?sala=' + code);
+  startMode('online');
+}
+function leaveOnline() {
+  for (const u of NET.unsubs) u(); NET.unsubs = [];
+  ONLINE = null;
+}
+function onlineOver() {
+  const O = ONLINE; if (!O || !O.host || O.replaying) return;
+  NET.db.ref('rooms/' + O.id + '/status').set('over').catch(() => {});
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('#lob-create')) return createGame();
+  if (e.target.closest('#lob-share')) return shareLink();
+  const st = e.target.closest('#lob-start'); if (st) { st.disabled = true; return NET.db.ref('rooms/' + st.dataset.code).get().then(s => startRoom(st.dataset.code, s.val())); }
+  const m = e.target.closest('[data-newmode]'); if (m) { saveName(); newMode = m.dataset.newmode; return renderHome(); }
+  if (e.target.closest('#lob-retry')) return showLobby(new URLSearchParams(location.search).get('sala'));
+  if (e.target.closest('#lob-home')) { stopRoomWatch(); history.replaceState(null, '', location.pathname); return renderHome(); }
+  const j = e.target.closest('[data-join]'); if (j) return joinGame(j.dataset.join, +j.dataset.seat);
+  const r = e.target.closest('[data-room]'); if (r) { history.replaceState(null, '', '?sala=' + r.dataset.room); return openRoom(r.dataset.room); }
+});
+$('lobby-back').onclick = () => { stopRoomWatch(); history.replaceState(null, '', location.pathname); $('lobby').hidden = true; $('menu').hidden = false; };
+
+/* ================================================================ FX: animación, ruleta, ambiente y sonido */
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+const FX = { fast: false, hurry: false, sound: false };
+try { FX.fast = localStorage.getItem('tr-fast') === '1'; FX.sound = localStorage.getItem('tr-sound') === '1'; } catch (e) {}
+function FXK() { return ONLINE && ONLINE.replaying ? 0.02 : RM.matches ? 0.08 : FX.hurry ? 0.15 : FX.fast ? 0.5 : 1; }
+const D = ms => Math.max(1, Math.round(ms * FXK()));
+const R = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+const visible = el => el && el.getClientRects().length > 0;
+const done = a => a.finished.catch(() => {});
+
+/* --- snapshots + FLIP ------------------------------------------- */
+function snap() {
+  const cards = new Map(), rh = {};
+  document.querySelectorAll('[data-cid]').forEach(el => { if (visible(el)) cards.set(+el.dataset.cid, R(el)); });
+  document.querySelectorAll('.rival-hand[id]').forEach(el => {
+    const last = el.lastElementChild;
+    rh[el.id.slice(3)] = { n: el.children.length, rect: last ? R(last) : R(el) };
+  });
+  return { cards, rh };
+}
+function moveFrom(el, from, o = {}) {
+  const now = el.getBoundingClientRect();
+  const dx = from.x - now.left, dy = from.y - now.top, s = from.w / (now.width || 1);
+  if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(s - 1) < .02) return null;
+  const lift = o.arc ? -Math.min(80, Math.hypot(dx, dy) * .18) : 0;
+  const rot = o.spin || 0;
+  const kf = [
+    { transform: `translate(${dx}px,${dy}px) scale(${s}) rotate(${rot}deg)`, transformOrigin: '0 0' },
+    ...(o.arc ? [{ transform: `translate(${dx / 2}px,${dy / 2 + lift}px) scale(${(s + 1) / 2 * 1.06}) rotate(${rot / 2}deg)`, transformOrigin: '0 0', offset: .5 }] : []),
+    { transform: 'none', transformOrigin: '0 0' }];
+  return el.animate(kf, { duration: D(o.dur || 460), delay: D(o.delay || 0), easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' });
+}
+// Animate every card from where it was (prev) to where it is now; new cards come from the deck or a rival hand.
+function settle(prev, o = {}) {
+  const anims = [], pile = R($('pile'));
+  let k = 0;
+  document.querySelectorAll('[data-cid]').forEach(el => {
+    if (!visible(el)) return;
+    let from = prev.cards.get(+el.dataset.cid), arc = false;
+    if (!from) {
+      const owner = el.dataset.owner;
+      if (owner && prev.rh[owner]) { from = prev.rh[owner].rect; arc = true; }
+      else if (o.newFromPile || el.closest('#hand')) { from = pile; arc = true; }
+      else return;
+    }
+    const a = moveFrom(el, from, { arc: arc || o.arc, delay: arc ? (k++) * 70 : 0, dur: o.dur });
+    if (a) { anims.push(done(a)); if (arc) sfx('card'); }
+  });
+  // extra backs in rival hands come from the deck
+  document.querySelectorAll('.rival-hand[id]').forEach(el => {
+    const p = prev.rh[el.id.slice(3)]; if (!p) return;
+    [...el.children].slice(p.n).forEach(ch => { const a = moveFrom(ch, pile, { arc: true, delay: (k++) * 70 }); if (a) anims.push(done(a)); });
+  });
+  return Promise.all(anims);
+}
+
+/* --- ghosts: a card that flies between two places ---------------- */
+function ghost(card, from, to, o = {}) {
+  if (RM.matches || !from || !to) return Promise.resolve();
+  const g = document.createElement('div');
+  g.className = 'ghost';
+  g.style.cssText = `left:${from.x}px;top:${from.y}px;width:${from.w}px;`;
+  g.innerHTML = `<div class="card">${cardSVG(o.back ? { back: true } : card)}</div>` + (o.gull ? `<svg class="gull" viewBox="-24 -26 48 30"><path d="${PATHS.Gaviota}" fill="#F7F3E8"/></svg>` : '');
+  document.body.appendChild(g);
+  const s = to.w / from.w, dx = to.x - from.x, dy = to.y - from.y;
+  const lift = -Math.min(110, 40 + Math.hypot(dx, dy) * .2);
+  const rot = o.rot != null ? o.rot : (Math.random() * 16 - 8);
+  const a = g.animate([
+    { transform: 'translate(0,0) scale(1) rotate(0deg)', opacity: 1 },
+    { transform: `translate(${dx / 2}px,${dy / 2 + lift}px) scale(${(1 + s) / 2 * 1.08}) rotate(${rot}deg)`, opacity: 1, offset: .5 },
+    { transform: `translate(${dx}px,${dy}px) scale(${s}) rotate(${o.endRot || 0}deg)`, opacity: o.fade ? 0 : 1 }],
+    { duration: D(o.dur || 620), delay: D(o.delay || 0), easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'both' });
+  return done(a).then(() => g.remove());
+}
+// cards that were on screen (prev) and are gone now fly to `to(card)`
+function flyGone(prev, to, o = {}) {
+  const now = new Set([...document.querySelectorAll('[data-cid]')].filter(visible).map(el => +el.dataset.cid));
+  const out = []; let k = 0;
+  for (const [id, rect] of prev.cards) {
+    if (now.has(id)) continue;
+    const card = ALL.find(c => c.id === id); if (!card) continue;
+    const t = to(card); if (!t) continue;
+    out.push(ghost(card, rect, t, { ...o, delay: (o.delay || 0) + (k++) * 90 }));
+  }
+  if (out.length) sfx('card');
+  return Promise.all(out);
+}
+
+/* --- deal at the start ------------------------------------------- */
+async function dealIntro(gid) {
+  const pile = R($('pile'));
+  const hand = [...document.querySelectorAll('#hand [data-cid]')];
+  const rivals = PL().filter(p => p.id !== 'h').map(p => [...($('rh-' + p.id) || { children: [] }).children]);
+  const bank = [...document.querySelectorAll('#bank [data-cid]')];
+  const all = [...hand, ...rivals.flat(), ...bank];
+  if (RM.matches) return;
+  all.forEach(el => el.style.visibility = 'hidden');
+  const jobs = []; let k = 0;
+  const land = (el, flip) => () => { el.style.visibility = ''; if (flip) el.animate([{ transform: 'rotateY(90deg)' }, { transform: 'none' }], { duration: D(260), easing: 'ease-out' }); };
+  for (let i = 0; i < HAND; i++) {
+    const order = [hand[i], ...rivals.map(r => r[i])];
+    for (const el of order) {
+      if (!el) continue;
+      jobs.push(ghost(null, pile, R(el), { back: true, delay: (k++) * 75, dur: 420, rot: 0 }).then(land(el, el.closest('#hand'))));
+      setTimeout(() => sfx('card'), D(k * 75));
+    }
+  }
+  bank.forEach(el => jobs.push(ghost(null, pile, R(el), { back: true, delay: (k++) * 90, dur: 460, rot: 0 }).then(land(el, true))));
+  await Promise.all(jobs);
+  if (gid !== gameId) all.forEach(el => el.style.visibility = '');
+}
+
+/* --- banner + win/lose ------------------------------------------- */
+function banner(title, sub = '', kind = 'win') {
+  const b = $('banner'); if (!b) return;
+  b.className = 'banner ' + kind; b.innerHTML = `<b>${title}</b>${sub ? `<span>${sub}</span>` : ''}`; b.hidden = false;
+  $('msg-title').style.visibility = 'hidden';
+  b.animate([{ transform: 'translate(-50%,-50%) scale(.6)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1.06)', opacity: 1, offset: .6 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }], { duration: D(420), easing: 'ease-out' });
+}
+function hideBanner() {
+  $('msg-title').style.visibility = '';
+  const b = $('banner'); if (!b || b.hidden) return;
+  const a = b.animate([{ opacity: 1 }, { opacity: 0, transform: 'translate(-50%,-60%) scale(.96)' }], { duration: D(220) });
+  done(a).then(() => { b.hidden = true; });
+}
+
+/* --- counters ------------------------------------------------------ */
+function countTo(el, to) {
+  const from = +(el.dataset.v ?? to); el.dataset.v = to;
+  const num = el.querySelector('.num'); if (!num) return;
+  if (from === to || RM.matches) { num.textContent = to; return; }
+  const t0 = performance.now(), dur = D(700);
+  const step = t => { const p = Math.min(1, (t - t0) / dur); num.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+  el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.25)', color: '#FFF4C8' }, { transform: 'scale(1)' }], { duration: D(600) });
+}
+
+/* --- wind: ambient, streaks, needle with weight ------------------ */
+const WIND_ANGLE = [90, 180, 270, 0];   // direction the wind travels on screen (T blows south, L west, M north, P east)
+function buildAmbient() {
+  const s = $('streaks'); if (!s || s.children.length) return;
+  let h = '';
+  for (let i = 0; i < 16; i++) {
+    const top = (i * 6.3 + Math.random() * 4).toFixed(1), w = 120 + Math.random() * 220, d = 3.2 + Math.random() * 3.5;
+    h += `<i style="top:${top}%;width:${w.toFixed(0)}px;animation-duration:${d.toFixed(2)}s;animation-delay:${(-Math.random() * d).toFixed(2)}s"></i>`;
+  }
+  s.innerHTML = h;
+}
+function setAmbient(w) {
+  buildAmbient();
+  const s = $('streaks');
+  if (w == null) { delete document.body.dataset.wind; if (s) { s.getAnimations().forEach(a => a.cancel()); } return; }
+  const k = WINDS[w].k;
+  if (document.body.dataset.wind === k) return;
+  document.body.dataset.wind = k;
+  if (s && !RM.matches) {
+    s.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' }).finished.then(() => {
+      s.style.transform = `rotate(${WIND_ANGLE[w]}deg)`;
+      s.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 900, fill: 'forwards' });
+    }).catch(() => {});
+  } else if (s) s.style.transform = `rotate(${WIND_ANGLE[w]}deg)`;
+}
+function swingNeedle(from, to) {
+  const el = $('needle'); el.style.transform = `rotate(${to}deg)`;
+  if (RM.matches || from === to) return Promise.resolve();
+  const d = Math.sign(to - from);
+  const a = el.animate([
+    { transform: `rotate(${from}deg)` },
+    { transform: `rotate(${to + 9 * d}deg)`, offset: .62 },
+    { transform: `rotate(${to - 4 * d}deg)`, offset: .82 },
+    { transform: `rotate(${to + 1.5 * d}deg)`, offset: .93 },
+    { transform: `rotate(${to}deg)` }], { duration: D(1150), easing: 'cubic-bezier(.3,.6,.3,1)' });
+  $('compass-wrap').animate([{ filter: 'drop-shadow(0 0 0 rgba(225,180,55,0))' }, { filter: 'drop-shadow(0 0 18px rgba(225,180,55,.9))' }, { filter: 'drop-shadow(0 0 0 rgba(225,180,55,0))' }], { duration: D(1300) });
+  sfx('wind');
+  return done(a);
+}
+
+/* --- specials ------------------------------------------------------ */
+async function fxStorm(gid) {
+  const o = $('storm'); o.hidden = false; o.classList.remove('off');
+  sfx('thunder');
+  const els = [...document.querySelectorAll('#bank .slot, .seat .slot, #hand .card-btn, .rival-hand .mini')];
+  const anims = els.map((el, i) => el.animate([
+    { transform: 'none', opacity: 1 },
+    { transform: `translate(${-40 + Math.random() * 30}px, -10px) rotate(${-6}deg)`, opacity: 1, offset: .25 },
+    { transform: `translate(${window.innerWidth * .8}px, ${Math.random() * 160 - 80}px) rotate(${80 + Math.random() * 120}deg)`, opacity: 0 }],
+    { duration: D(900), delay: D(300 + i * 60), easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }));
+  await Promise.all(anims.map(done));
+}
+function stormOff() { const o = $('storm'); if (!o || o.hidden) return; o.classList.add('off'); setTimeout(() => { o.hidden = true; }, D(900)); }
+function fxGull(card, fromT, toT) {
+  sfx('gull');
+  return ghost(card, R($('bp-' + fromT)), R($('bp-' + toT)), { gull: true, dur: 1300, rot: -10 });
+}
+async function fxBeam(fromEl) {
+  if (RM.matches || !fromEl) return;
+  const a = R(fromEl), c = R($('compass-wrap'));
+  const x1 = a.x + a.w / 2, y1 = a.y + a.h * .3, x2 = c.x + c.w / 2, y2 = c.y + c.h / 2;
+  const ang = Math.atan2(y2 - y1, x2 - x1), w2 = c.w * .55, nx = -Math.sin(ang), ny = Math.cos(ang);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'beam');
+  svg.innerHTML = `<defs><linearGradient id="bg" gradientUnits="userSpaceOnUse" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"><stop offset="0" stop-color="#FFF3B0" stop-opacity=".95"/><stop offset="1" stop-color="#E1B437" stop-opacity=".15"/></linearGradient></defs>
+    <polygon points="${x1 + nx * 4},${y1 + ny * 4} ${x2 + nx * w2},${y2 + ny * w2} ${x2 - nx * w2},${y2 - ny * w2} ${x1 - nx * 4},${y1 - ny * 4}" fill="url(#bg)"/>`;
+  document.body.appendChild(svg);
+  sfx('chime');
+  await done(svg.animate([{ opacity: 0 }, { opacity: 1, offset: .25 }, { opacity: 1, offset: .7 }, { opacity: 0 }], { duration: D(1400) }));
+  svg.remove();
+}
+function fxNet(ids) {
+  if (RM.matches) return Promise.resolve();
+  sfx('net');
+  const jobs = ids.map((id, i) => {
+    const el = document.querySelector(`#bank [data-cid="${id}"]`); if (!el) return Promise.resolve();
+    const r = R(el), n = document.createElement('div');
+    n.className = 'net'; n.style.cssText = `left:${r.x - 6}px;top:${r.y - 6}px;width:${r.w + 12}px;height:${r.h + 12}px`;
+    document.body.appendChild(n);
+    return done(n.animate([{ transform: 'scale(1.5) rotate(-8deg)', opacity: 0 }, { transform: 'scale(1) rotate(0)', opacity: 1, offset: .55 }, { opacity: 1, offset: .85 }, { opacity: 0 }],
+      { duration: D(900), delay: D(i * 90), easing: 'ease-out', fill: 'both' })).then(() => n.remove());
+  });
+  return Promise.all(jobs);
+}
+
+/* --- roulette (replaces the die): 8 sectors, fixed pointer on top ----- */
+// Same order as the printed roulette: T opposite M.
+const D8 = (() => {
+  const ORDER = ['T', 'sardina', 'pulpo', 'tortuga', 'M', 'cangrejo', 'estrella', 'caballito'];
+  const R0 = 92, step = 360 / ORDER.length;
+  const pt = (r, deg) => { const a = (deg - 90) * Math.PI / 180; return [(r * Math.cos(a)).toFixed(2), (r * Math.sin(a)).toFixed(2)]; };
+  const sector = (k, r) => { const a0 = k * step - step / 2, a1 = k * step + step / 2, [x0, y0] = pt(r, a0), [x1, y1] = pt(r, a1); return `M0 0L${x0} ${y0}A${r} ${r} 0 0 1 ${x1} ${y1}Z`; };
+  const fill = k => SP[k] ? SP[k].col : '#16264A';
+  const html = () => {
+    let s = '';
+    ORDER.forEach((k, i) => {
+      s += `<path class="sec" data-face="${k}" d="${sector(i, R0)}" fill="${fill(k)}"/>`;
+      const icon = SP[k] ? `<g transform="scale(.62) translate(0 3)"><path d="${PATHS[SP[k].icon]}" fill="#F2EAD3" fill-rule="evenodd"/></g>`
+        : `<text y="10" font-size="30" font-weight="800" text-anchor="middle" fill="#E1B437" font-family="Poppins, Baloo 2, Arial, sans-serif">${k}</text>`;
+      s += `<g transform="rotate(${i * step}) translate(0 -58)">${icon}</g>`;
+    });
+    for (let i = 0; i < ORDER.length; i++) { const [x, y] = pt(R0, i * step + step / 2); s += `<line x1="0" y1="0" x2="${x}" y2="${y}" stroke="#E1B437" stroke-width="2.2"/>`; }
+    return `<div class="wheelbox"><svg class="wheel" viewBox="-100 -112 200 212" aria-hidden="true">
+      <circle r="97" fill="#0B0D12"/><circle r="95" fill="none" stroke="#E1B437" stroke-width="2.5"/>
+      <g id="wheel-rot">${s}<circle r="${R0}" fill="none" stroke="#F2EAD3" stroke-width="2"/></g>
+      <circle r="14" fill="#E1B437"/><circle r="6" fill="#0B0D12"/>
+      <path d="M-11 -108 L11 -108 L0 -86 Z" fill="#CD302A" stroke="#F2EAD3" stroke-width="2" stroke-linejoin="round"/>
+    </svg><div class="d8label" id="d8label"></div></div>`;
+  };
+  let cur = 0;
+  const angleFor = k => -ORDER.indexOf(k) * step;
+  return {
+    mount() { const el = $('die'); if (!el.querySelector('#wheel-rot')) { el.innerHTML = html(); $('wheel-rot').style.transform = `rotate(${cur}deg)`; } },
+    async roll(k) {
+      this.mount();
+      const g = $('wheel-rot');
+      g.querySelectorAll('.hit').forEach(x => x.classList.remove('hit')); $('d8label').textContent = '';
+      const jitter = (Math.random() - .5) * step * .6;                 // where inside the sector it stops (looks natural)
+      let target = angleFor(k) + jitter;
+      const turns = 3 + Math.floor(Math.random() * 2);
+      target = target + 360 * Math.ceil((cur - target) / 360) + 360 * turns;   // always forward, several turns
+      const from = cur; cur = target % 360;
+      g.style.transform = `rotate(${cur}deg)`;
+      if (!RM.matches) {
+        sfx('spin');
+        await done(g.animate([{ transform: `rotate(${from}deg)` }, { transform: `rotate(${target}deg)` }], { duration: D(3000), easing: 'cubic-bezier(.1,.65,.15,1)' }));
+      }
+      const hit = g.querySelector(`.sec[data-face="${k}"]`); if (hit) hit.classList.add('hit');
+      $('d8label').textContent = faceName(k);
+      if (!RM.matches) $('d8label').animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: D(300) });
+    },
+  };
+})();
+
+/* --- sound (synthesised, off by default) ------------------------- */
+const SFX = (() => {
+  let ctx = null;
+  const ac = () => { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); return ctx; };
+  function noise(dur, o = {}) {
+    const c = ac(), t = c.currentTime + (o.delay || 0), n = Math.floor(c.sampleRate * dur);
+    const buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource(); src.buffer = buf;
+    const f = c.createBiquadFilter(); f.type = o.type || 'bandpass'; f.Q.value = o.q || 1;
+    f.frequency.setValueAtTime(o.f0 || 1500, t); f.frequency.exponentialRampToValueAtTime(o.f1 || 800, t + dur);
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.gain || .2, t + (o.attack || .01)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(c.destination); src.start(t); src.stop(t + dur + .05);
+  }
+  function tone(f0, f1, dur, o = {}) {
+    const c = ac(), t = c.currentTime + (o.delay || 0);
+    const os = c.createOscillator(); os.type = o.type || 'sine';
+    os.frequency.setValueAtTime(f0, t); os.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.gain || .15, t + (o.attack || .015)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    os.connect(g).connect(c.destination); os.start(t); os.stop(t + dur + .05);
+  }
+  return {
+    card() { noise(.11, { f0: 3200, f1: 1400, q: .7, gain: .12 }); },
+    flip() { noise(.07, { f0: 2400, f1: 2000, q: 2, gain: .14 }); tone(520, 480, .06, { type: 'triangle', gain: .05 }); },
+    spin() { let t = 0, gap = .05; for (let i = 0; i < 40 && t < 2.75; i++) { tone(2100, 1950, .018, { type: 'triangle', gain: .045, delay: t, attack: .001 }); t += gap; gap *= 1.07; } tone(1568, 1568, .4, { gain: .035, delay: 2.9 }); },
+    dice() { for (let i = 0; i < 7; i++) { const dl = i * .11 + Math.random() * .05; noise(.05, { f0: 1800 + Math.random() * 1200, f1: 900, q: 3, gain: .2 - i * .02, delay: dl }); } },
+    wind() { [0, .075, .15].forEach((d, i) => tone(1700 + i * 260, 1650 + i * 260, .03, { type: 'triangle', gain: .05, delay: d, attack: .002 })); tone(1318, 1318, .35, { gain: .028, delay: .2 }); },
+    gull() { tone(1500, 950, .28, { type: 'sawtooth', gain: .035 }); tone(1600, 1000, .32, { type: 'sawtooth', gain: .035, delay: .34 }); },
+    thunder() { noise(2.4, { type: 'lowpass', f0: 600, f1: 50, gain: .5, attack: .02 }); noise(.25, { type: 'highpass', f0: 3000, f1: 2000, gain: .12 }); },
+    win() { tone(660, 660, .16, { gain: .1 }); tone(880, 880, .32, { gain: .1, delay: .12 }); tone(1320, 1320, .4, { gain: .05, delay: .22 }); },
+    lose() { tone(392, 330, .32, { type: 'triangle', gain: .08 }); },
+    chime() { tone(1046, 1046, .6, { gain: .07 }); tone(1568, 1568, .7, { gain: .04, delay: .08 }); },
+    net() { noise(.35, { f0: 900, f1: 400, q: 1.5, gain: .12 }); },
+  };
+})();
+function sfx(name) { if (FX.sound && !RM.matches && !(ONLINE && ONLINE.replaying)) { try { SFX[name](); } catch (e) {} } }
+
+/* --- controls: sound, pace, skip ---------------------------------- */
+function syncFxButtons() {
+  $('btn-sound').textContent = FX.sound ? 'Sonido: sí' : 'Sonido: no';
+  $('btn-sound').setAttribute('aria-pressed', FX.sound);
+  $('btn-speed').textContent = FX.fast ? 'Ritmo: rápido' : 'Ritmo: normal';
+  $('btn-speed').setAttribute('aria-pressed', FX.fast);
+}
+$('btn-sound').onclick = () => { FX.sound = !FX.sound; try { localStorage.setItem('tr-sound', FX.sound ? '1' : '0'); } catch (e) {} syncFxButtons(); sfx('chime'); };
+$('btn-speed').onclick = () => { FX.fast = !FX.fast; try { localStorage.setItem('tr-fast', FX.fast ? '1' : '0'); } catch (e) {} syncFxButtons(); };
+syncFxButtons();
+// a click on the table while things are moving speeds them up
+document.addEventListener('pointerdown', e => {
+  if (!S || S.over || pending || S.phase === 'choose' || $('game').hidden) return;
+  if (e.target.closest('button, .modal, header, details')) return;
+  FX.hurry = true;
+  document.getAnimations().forEach(a => { try { if (a.playState === 'running' && !(a instanceof CSSAnimation) && !(a instanceof CSSTransition) && isFinite(a.effect.getTiming().iterations)) a.playbackRate = 5; } catch (err) {} });
+});
+/* ---------------------------------------------------------------- state */
+let S = null, ALL = [], pending = null, needleAngle = 0, gameId = 0, MODE = '1v1';
+const DIE = ['sardina', 'pulpo', 'tortuga', 'cangrejo', 'estrella', 'caballito', 'T', 'M'];   // 8-sided die
+const faceName = f => SP[f] ? SP[f].name : f === 'T' ? 'Tramuntana' : 'Migjorn';
+
+const SETUPS = {
+  '1v1': { mareas: 1, players: [
+    { id: 'h', name: 'Tú', team: 'A', ai: false },
+    { id: 'c', name: 'Tomeu', team: 'B', ai: true } ],
+    teams: { A: 'Tú', B: 'Tomeu' } },
+  '2v2': { mareas: 1, players: [
+    { id: 'h', name: 'Tú', team: 'A', ai: false },
+    { id: 'c', name: 'Tomeu', team: 'B', ai: true },
+    { id: 'p', name: 'Pep', team: 'A', ai: true },
+    { id: 'a', name: 'Aina', team: 'B', ai: true } ],
+    teams: { A: 'Pep y tú', B: 'Tomeu y Aina' } },
+};
+const PL = () => SETUPS[MODE].players;
+const IS2 = () => PL().length === 4;
+const P = id => PL().find(p => p.id === id);
+const teamOf = id => P(id).team;
+const other = t => t === 'A' ? 'B' : 'A';
+const nm = id => P(id).name;
+const vb = (id, tu, el) => id === 'h' ? tu : el;
+
+function buildDeck() {
+  let id = 0; const d = [];
+  for (const s of SPECIES) for (let v = 1; v <= 10; v++) d.push({ id: id++, kind: 'fish', sp: s.k, v });
+  for (const t of Object.keys(SPECIAL)) for (let i = 0; i < 2; i++) d.push({ id: id++, kind: 'special', type: t });
+  return d;
+}
+function startMode(mode) {
+  MODE = mode;
+  $('menu').hidden = true; $('lobby').hidden = true; $('game').hidden = false;
+  $('subtitle').textContent = mode === '1v1' ? 'Tú contra Tomeu · el viento cambia las reglas' : mode === 'online' ? `${SETUPS.online.teams.A} contra ${SETUPS.online.teams.B} · en línea` : 'Pep y tú contra Tomeu y Aina · por parejas';
+  $('btn-new').hidden = mode === 'online';
+  newGame();
+}
+function showMenu() {
+  gameId++; pending = null; closeModal();
+  if (MODE === 'online') { leaveOnline(); MODE = '1v1'; }
+  $('game').hidden = true; $('lobby').hidden = true; $('menu').hidden = false;
+}
+function newGame() {
+  gameId++;
+  RNG = MODE === 'online' ? seeded(ONLINE.seed) : Math.random;
+  S = { marea: 1, mareas: SETUPS[MODE].mareas, prev: { A: 0, B: 0 }, history: [], log: [], over: false };
+  $('log').innerHTML = '';
+  closeModal();
+  newMarea(gameId);
+}
+function newMarea(gid) {
+  ALL = buildDeck();
+  Object.assign(S, { deck: shuffle(ALL.slice()), bank: [], hand: {}, basket: { A: [], B: [] }, discard: [],
+    wind: 0, phase: 'spin', sel: { fish: null, special: null }, played: null, revealed: false, round: 1 });
+  for (const p of PL()) S.hand[p.id] = [];
+  for (let i = 0; i < HAND; i++) for (const p of PL()) S.hand[p.id].push(S.deck.pop());
+  for (let i = 0; i < 4; i++) bankDraw();
+  needleAngle = 0; pending = null; S.res = null; S.hold = null; S.stormed = false;
+  $('needle').style.transition = 'none'; $('needle').style.transform = 'rotate(0deg)'; void $('needle').getBoundingClientRect();
+  for (const t of ['A', 'B']) delete $('score-' + t).dataset.v;
+  setAmbient(null); hideBanner(); $('die').hidden = true; $('wind-name').textContent = ''; $('wind-rule').textContent = '';
+  buildSeats(); S.phase = 'deal'; render();
+  say('Repartiendo…', '');
+  dealIntro(gid).then(() => { if (gid === gameId) startSpin(gid); });
+}
+// the starting wind is random: the needle spins and stops on it
+async function startSpin(gid) {
+  const w0 = rnd(4);
+  S.phase = 'spin'; render(); sfx('wind');
+  say(S.mareas > 1 ? `Marea ${S.marea}: girando la rosa…` : 'Girando la rosa…', 'El viento inicial se decide al azar.');
+  $('wind-name').textContent = '¿Qué viento soplará?'; $('wind-rule').textContent = '';
+  await sleep(80); if (gid !== gameId) return;
+  const el = $('needle');
+  el.style.transition = 'transform 2.6s cubic-bezier(.12,.7,.18,1)';
+  needleAngle = 1080 + w0 * 90 + rnd(3) * 360;
+  el.style.transform = `rotate(${needleAngle}deg)`;
+  await sleep(2700); if (gid !== gameId) return;
+  el.style.transition = '';
+  S.wind = w0; setAmbient(w0); sfx('wind');
+  $('compass-wrap').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: D(500) });
+  log(`${S.mareas > 1 ? `Marea ${S.marea}. ` : ''}La rosa se para en ${WINDS[w0].name}: ${WINDS[w0].rule.toLowerCase()}`);
+  loop(gid);
+}
+// the bank only holds fish: specials drawn for it go back into the deck
+function bankDraw() {
+  for (let tries = 0; tries < 60 && S.deck.length; tries++) {
+    const c = S.deck.pop();
+    if (c.kind === 'fish') { S.bank.push(c); return true; }
+    S.deck.splice(rnd(S.deck.length + 1), 0, c);
+    if (S.deck.every(x => x.kind !== 'fish')) return false;
+  }
+  return false;
+}
+function log(t) { S.log.push(t); const li = document.createElement('li'); li.textContent = t; $('log').prepend(li); }
+function say(title, text = '') { $('msg-title').textContent = title; $('msg-text').textContent = text; }
+const sortHand = h => h.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'fish' ? -1 : 1) || (a.sp || a.type).localeCompare(b.sp || b.type) || (a.v || 0) - (b.v || 0));
+const cname = c => c.kind === 'fish' ? `${SP[c.sp].name} ${c.v}` : SPECIAL[c.type].name;
+
+/* ---------------------------------------------------------------- scoring */
+function counts(b) { const o = {}; for (const s of SPECIES) o[s.k] = { n: 0, sum: 0 }; for (const c of b) if (c.kind === 'fish') { o[c.sp].n++; o[c.sp].sum += c.v; } return o; }
+function marea(t) { let pts = 0, n = 0; for (const c of S.basket[t]) if (c.kind === 'fish') { pts += c.v; n++; } return { pts, n }; }
+function total(t) { return S.prev[t] + marea(t).pts; }
+
+/* ---------------------------------------------------------------- rules */
+function targets(bank = S.bank) {
+  const fish = bank.filter(c => c.kind === 'fish'); if (!fish.length) return [];
+  const mx = Math.max(...fish.map(c => c.v));
+  return [...new Set(fish.filter(c => c.v === mx).map(c => c.sp))];
+}
+// rule: 'T' | 'M' | 'L' | species key (Ponent die face). Higher key wins; null = cannot win
+function keyOf(rule, f, tg) {
+  if (!f) return null;
+  if (rule === 'T') return f.v;
+  if (rule === 'M') return 11 - f.v;
+  if (rule === 'L') return tg.includes(f.sp) ? f.v : null;
+  return f.sp === rule ? f.v : null;
+}
+// entries: [{id, fish}] -> {win: id|null, keys}
+function judge(rule, entries, tg = targets()) {
+  const keys = {}; let best = null;
+  for (const e of entries) { const k = keyOf(rule, e.fish, tg); keys[e.id] = k; if (k != null && (best == null || k > best)) best = k; }
+  if (best == null) return { win: null, keys };
+  const top = entries.filter(e => keys[e.id] === best);
+  if (new Set(top.map(e => teamOf(e.id))).size > 1) return { win: null, keys, tie: true };
+  return { win: top[0].id, keys };
+}
+// every outcome of the Ponent die (8 x 8), with the single reroll when nobody played the species
+function dieOutcomes(entries, tg) {
+  const out = [];
+  const played = new Set(entries.filter(e => e.fish).map(e => e.fish.sp));
+  for (const f1 of DIE) {
+    if (SP[f1] && !played.has(f1)) for (const f2 of DIE) out.push(judge(f2, entries, tg).win);
+    else { const w = judge(f1, entries, tg).win; for (let i = 0; i < DIE.length; i++) out.push(w); }
+  }
+  return out;
+}
+function dieSVG(f) {
+  const body = SP[f]
+    ? `<g transform="translate(30 33) scale(.92)"><path d="${PATHS[SP[f].icon]}" fill="${SP[f].col}" fill-rule="evenodd"/></g>`
+    : `<text x="30" y="36" font-size="30" font-weight="800" text-anchor="middle" fill="#0B0D12" font-family="Baloo 2, Arial, sans-serif">${f}</text><text x="30" y="51" font-size="7.5" font-weight="800" text-anchor="middle" fill="#0B0D12" font-family="Nunito Sans, Arial, sans-serif" letter-spacing=".4">${f === 'T' ? 'TRAMUNTANA' : 'MIGJORN'}</text>`;
+  return `<svg viewBox="0 0 60 60" role="img" aria-label="Dado: ${faceName(f)}"><rect x="1.5" y="1.5" width="57" height="57" rx="12" fill="#EFE8D6" stroke="#E1B437" stroke-width="2"/>${body}</svg>`;
+}
+async function rollDie(face, gid) {
+  $('die').hidden = false; $('die').classList.remove('idle');
+  await D8.roll(face); if (gid !== gameId) return;
+  await sleep(600);
+}
+
+/* ---------------------------------------------------------------- AI */
+// what the others might hold, from this player's point of view (it never peeks)
+function samples(me, k) {
+  const known = new Set([...S.hand[me], ...S.bank, ...S.basket.A, ...S.basket.B, ...S.discard].map(c => c.id));
+  const pool = ALL.filter(c => !known.has(c.id));
+  const others = PL().filter(p => p.id !== me), out = [];
+  for (let i = 0; i < k; i++) {
+    const sh = shuffle(pool.slice()); let at = 0; const hands = {};
+    for (const o of others) { const n = S.hand[o.id].length; hands[o.id] = sh.slice(at, at + n); at += n; }
+    out.push(hands);
+  }
+  return out;
+}
+function model(hand, wk, tg) {
+  const f = hand.filter(c => c.kind === 'fish'); if (!f.length) return null;
+  if (Math.random() < 0.25) return f[rnd(f.length)];
+  const by = (arr, hi) => arr.reduce((m, c) => (hi ? c.v > m.v : c.v < m.v) ? c : m);
+  if (wk === 'T') return by(f, true);
+  if (wk === 'M' || wk === 'P') return by(f, false);
+  const t = f.filter(c => tg.includes(c.sp)); return t.length ? by(t, true) : by(f, false);
+}
+const topSum = n => S.bank.map(c => c.v || 0).sort((a, b) => b - a).slice(0, n).reduce((a, b) => a + b, 0);
+function aiChoose(me) {
+  const hand = S.hand[me], fish = hand.filter(c => c.kind === 'fish'), myT = teamOf(me);
+  const sp = t => hand.find(c => c.kind === 'special' && c.type === t);
+  const opts = [];
+  for (const f of fish) {
+    opts.push({ fish: f });
+    if (sp('red')) opts.push({ fish: f, special: sp('red') });
+    if (sp('faro')) for (const d of [-1, 1]) opts.push({ fish: f, special: sp('faro'), faro: (S.wind + d + 4) % 4 });
+  }
+  if (sp('tormenta')) opts.push({ special: sp('tormenta') });
+  if (sp('gaviota')) opts.push({ special: sp('gaviota') });
+  if (!fish.length) { if (sp('red')) opts.push({ special: sp('red') }); if (sp('faro')) for (const d of [-1, 1]) opts.push({ special: sp('faro'), faro: (S.wind + d + 4) % 4 }); }
+  if (!opts.length) return { special: hand[0] };
+  const smp = samples(me, PL().length > 2 ? 90 : 140), tg = targets(), wkNow = WINDS[S.wind].k;
+  const gain2 = topSum(2), gain3 = topSum(3);
+  const prey = S.basket[other(myT)].filter(c => c.kind === 'fish' && c.v <= 5);
+  const steal = prey.length ? Math.max(...prey.map(c => c.v)) * 1.6 : 0;
+  // what the others will probably play, per sample
+  const modeled = smp.map(h => Object.entries(h).map(([id, hh]) => ({ id, fish: model(hh, wkNow, tg) })));
+  let best = null, bestU = -1e9;
+  for (const o of opts) {
+    let u = 0;
+    const wk = WINDS[o.faro != null ? o.faro : S.wind].k;
+    const type = o.special && o.special.type;
+    if (type !== 'tormenta') {
+      for (const others of modeled) {
+        const entries = [...others, { id: me, fish: type === 'gaviota' ? null : o.fish }];
+        const wins = wk === 'P' ? dieOutcomes(entries, tg) : [judge(wk, entries, tg).win];
+        let uu = 0;
+        for (const w of wins) {
+          if (w == null) continue;
+          if (teamOf(w) === myT) uu += (w === me && type === 'red') ? gain3 : gain2;
+          else uu -= gain2 * 0.9;
+        }
+        u += uu / wins.length;
+      }
+      u /= modeled.length;
+    }
+    if (type === 'gaviota') u += steal;
+    if (o.fish) u -= o.fish.v * 0.33;
+    if (type) u -= { tormenta: 3, gaviota: 2, red: 2.2, faro: 2.2 }[type];
+    u += Math.random() * 0.4;
+    if (u > bestU) { bestU = u; best = o; }
+  }
+  return best;
+}
+function aiRotate(me) {
+  const smp = samples(me, PL().length > 2 ? 80 : 120), fish = S.hand[me].filter(c => c.kind === 'fish'), myT = teamOf(me), tg = targets();
+  let best = 1, bestS = -1;
+  for (const d of [-1, 1]) {
+    const w = (S.wind + d + 4) % 4, wk = WINDS[w].k;
+    let s = 0;
+    for (const h of smp) {
+      const others = Object.entries(h).map(([id, hh]) => ({ id, fish: model(hh, wk, tg) }));
+      let won = 0;
+      for (const f of fish) {
+        const entries = [...others, { id: me, fish: f }];
+        const p = wk === 'P' ? dieOutcomes(entries, tg).filter(x => x != null && teamOf(x) === myT).length / (DIE.length * DIE.length)
+                             : (() => { const x = judge(wk, entries, tg).win; return x != null && teamOf(x) === myT ? 1 : 0; })();
+        if (p > won) won = p;
+      }
+      s += won;
+    }
+    s /= smp.length;
+    if (s > bestS) { bestS = s; best = d; }
+  }
+  return best;
+}
+
+/* ---------------------------------------------------------------- render */
+function drawRose() {
+  let g = '';
+  const star = (R, r, n, rot, col) => { let p = ''; for (let i = 0; i < 2 * n; i++) { const rad = i % 2 ? r : R, a = (rot + i * 180 / n - 90) * Math.PI / 180; p += (i ? 'L' : 'M') + (rad * Math.cos(a)).toFixed(1) + ' ' + (rad * Math.sin(a)).toFixed(1); } return `<path d="${p}Z" fill="${col}"/>`; };
+  g += star(72, 19, 8, 0, '#E1B437') + star(44, 13, 4, 45, '#F3D27A');
+  $('rose').innerHTML = g;
+}
+function renderCompass() {
+  const L = [['T', 0, -66], ['L', 66, 0], ['M', 0, 66], ['P', -66, 0]];
+  const pre = S.phase === 'spin' || S.phase === 'deal', on = pre ? -1 : S.wind;
+  $('letters').innerHTML = L.map(([k, x, y], i) => `${i === on ? `<circle cx="${x}" cy="${y}" r="15" fill="#E1B437"/>` : ''}<text x="${x}" y="${y + 7}" fill="${i === on ? '#0B0D12' : '#EFE8D6'}">${k}</text>`).join('');
+  if (pre) return;
+  $('needle').style.transform = `rotate(${needleAngle}deg)`;
+  const w = WINDS[S.wind], wn = `${w.name} · ${w.dir}`;
+  if ($('wind-name').textContent !== wn) {
+    $('wind-name').textContent = wn;
+    $('wind-name').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: D(450), easing: 'ease-out' });
+  }
+  let rule = w.k === 'P' ? 'Se gira la ruleta: una especie, Tramuntana o Migjorn.' : w.rule;
+  if (w.k === 'L') { const t = targets(); rule += t.length ? ` Ahora: ${t.map(k => SP[k].name.toLowerCase()).join(' o ')}.` : ' El banco no tiene peces.'; }
+  $('wind-rule').textContent = rule;
+}
+function setWind(w) {
+  let d = ((w - S.wind) % 4 + 4) % 4; if (d === 3) d = -1;
+  const from = needleAngle;
+  needleAngle += d * 90; S.wind = w;
+  const a = swingNeedle(from, needleAngle);
+  setAmbient(w); renderCompass();
+  return a;
+}
+const backs = (n, id) => `<div class="rival-hand" id="rh-${id}">${Array.from({ length: n }, () => `<div class="mini">${cardSVG({ back: true })}</div>`).join('')}</div>`;
+const shown = t => S.hold && S.hold[t] ? S.basket[t].slice(0, S.basket[t].length - S.hold[t]) : S.basket[t];
+function basketChips(t) {
+  const me = counts(shown(t));
+  return `<div class="basket">${SPECIES.map(s => `<span class="chip ${me[s.k].n ? '' : 'zero'}" title="${s.name}: ${me[s.k].n} cartas, ${me[s.k].sum} puntos"><i style="background:${s.col}"></i>${me[s.k].n} <em>· ${me[s.k].sum}</em></span>`).join('')}</div>`;
+}
+function basketPile(t) {
+  const b = shown(t).filter(c => c.kind === 'fish'), top = b.slice(-4);
+  return `<div class="bpile" id="bp-${t}" title="Cesta: ${b.length} peces">${top.map((c, i) => `<div class="card" style="transform:translate(${i * 3}px,${-i * 2}px) rotate(${((c.id * 37) % 13) - 6}deg)">${cardSVG(c)}</div>`).join('') || '<div class="bempty"></div>'}<span class="bcount">${b.length}</span></div>`;
+}
+function renderStrips() {
+  const two = IS2();
+  // rivals
+  const rivals = PL().filter(p => p.team === 'B');
+  $('who-B').innerHTML = rivals.map(p => `<span class="pl"><b>${esc(p.name)}</b>${backs(S.hand[p.id].length, p.id)}</span>`).join('') + basketPile('B') + basketChips('B');
+  // own team
+  const partner = PL().find(p => p.team === 'A' && p.id !== 'h');
+  $('who-A').innerHTML = `<b>${esc(SETUPS[MODE].teams.A)}</b>` + (partner ? `<div class="partner"><span>${esc(nm('p'))}</span>${backs(S.hand.p.length, 'p')}</div>` : '') + basketPile('A') + basketChips('A');
+  for (const t of ['A', 'B']) {
+    const el = $('score-' + t);
+    if (!el.querySelector('.num')) el.innerHTML = '<span class="num">0</span><small>puntos</small>';
+    countTo(el, S.prev[t] + shown(t).reduce((a, c) => a + (c.v || 0), 0));
+  }
+}
+function buildSeats() {
+  for (const t of ['A', 'B']) {
+    const ps = PL().filter(p => p.team === t);
+    if (t === 'A') ps.sort((a, b) => (a.id === 'h') - (b.id === 'h'));   // you on the right
+    $('seats-' + t).innerHTML = ps.map(p => `<div class="seat"><span class="tag">${p.id === 'h' ? 'Tú juegas' : esc(p.name) + ' juega'}</span><div class="cards" id="seat-${p.id}"></div></div>`).join('');
+  }
+}
+function render() {
+  if (!S || !S.hand) return;
+  renderCompass(); renderStrips();
+  const n = Math.min(5, Math.ceil(S.deck.length / 6));
+  $('pile').innerHTML = S.deck.length ? Array.from({ length: n }, (_, i) => `<div class="card" style="transform:translate(${-i * 2}px,${-i * 3}px)">${cardSVG({ back: true })}</div>`).join('') : '';
+  $('deck-count').textContent = `Mazo · ${S.deck.length}`;
+  $('marea').textContent = S.mareas > 1 ? `Marea ${S.marea} de ${S.mareas}` : '';
+  const picking = pending && pending.kind === 'pick';
+  $('bank').innerHTML = S.bank.map(c => picking
+    ? `<button type="button" class="card-btn pickable ${pending.sel.includes(c.id) ? 'sel' : ''}" data-bank="${c.id}" data-cid="${c.id}">${cardDiv(c)}</button>`
+    : `<div class="slot" data-bankid="${c.id}" data-cid="${c.id}">${cardDiv(c)}</div>`).join('') || '<span class="tag">vacío</span>';
+  const choosing = S.phase === 'choose' && !S.over;
+  $('hand').innerHTML = sortHand(S.hand.h).map(c => {
+    const sel = S.sel.fish === c.id || S.sel.special === c.id;
+    return `<button type="button" class="card-btn ${sel ? 'sel' : ''} ${choosing ? '' : 'disabled'}" data-hand="${c.id}" data-cid="${c.id}" ${choosing ? '' : 'tabindex="-1"'}>${cardDiv(c)}</button>`;
+  }).join('');
+  for (const p of PL()) {
+    const pl = S.played && !S.stormed && S.played[p.id], el = $('seat-' + p.id);
+    if (!el) continue;
+    el.innerHTML = pl ? [pl.fish, pl.special].filter(Boolean).map(c => flipCard(c, S.revealed, p.id)).join('') : '';
+    const r = S.res, seat = el.parentElement;
+    seat.classList.toggle('win', !!r && r.win === p.id);
+    seat.classList.toggle('lose', !!r && (r.win == null || teamOf(p.id) !== teamOf(r.win)));
+  }
+  renderActions();
+}
+const flipCard = (c, up, owner) => `<div class="slot flip ${up ? 'up' : ''}" data-cid="${c.id}" data-owner="${owner}"><div class="inner"><div class="face back">${cardDiv({ back: true })}</div><div class="face front">${cardDiv(c)}</div></div></div>`;
+
+function renderActions() {
+  const a = $('actions'); a.innerHTML = '';
+  const btn = (label, fn, cls = '', dis = false) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.textContent = label; b.disabled = dis; b.onclick = fn; a.appendChild(b); };
+  if (S.over) { if (MODE === 'online') btn('Volver a la sala', showLobby, 'primary'); else btn('Jugar otra vez', newGame, 'primary'); btn('Ver puntuación', showEnd); btn('Menú', showMenu); return; }
+  if (S.phase === 'choose') {
+    const ok = S.sel.fish != null || S.sel.special != null;
+    btn('Jugar carta', commit, 'primary', !ok);
+    if (ok) btn('Quitar selección', () => { S.sel = { fish: null, special: null }; hint(); render(); });
+  } else if (pending && pending.kind === 'faro') {
+    for (const d of [-1, 1]) { const i = (S.wind + d + 4) % 4; btn((d < 0 ? '↺ ' : '') + WINDS[i].name + (d > 0 ? ' ↻' : ''), () => resolvePending(i)); }
+  } else if (pending && pending.kind === 'rotate') {
+    const l = (S.wind + 3) % 4, r = (S.wind + 1) % 4;
+    btn('↺ ' + WINDS[l].name, () => resolvePending(-1));
+    btn(WINDS[r].name + ' ↻', () => resolvePending(1));
+  } else if (pending && pending.kind === 'pick') {
+    btn(`Coger ${pending.sel.length}/${pending.n}`, () => resolvePending(pending.sel.slice()), 'primary', pending.sel.length !== Math.min(pending.n, S.bank.length));
+  } else if (pending && pending.kind === 'roll') {
+    btn('Girar la ruleta', () => resolvePending(true), 'primary');
+  } else if (pending && pending.kind === 'next') {
+    btn(pending.label || 'Siguiente ronda', () => resolvePending(true), 'primary');
+  }
+}
+function ask(kind, data = {}) {
+  FX.hurry = false;
+  if (ONLINE && ONLINE.replaying && (kind === 'roll' || kind === 'next')) return Promise.resolve(true);
+  return new Promise(res => { pending = { kind, ...data, resolve: res }; render(); }); }
+function resolvePending(v) { const p = pending; pending = null; if (p) p.resolve(v); }
+
+/* ---------------------------------------------------------------- input */
+document.addEventListener('click', e => {
+  const h = e.target.closest('[data-hand]');
+  if (h && S && S.phase === 'choose' && !S.over) {
+    const c = S.hand.h.find(x => x.id === +h.dataset.hand); if (!c) return;
+    if (c.kind === 'fish') {
+      S.sel.fish = S.sel.fish === c.id ? null : c.id;
+      const sp = S.hand.h.find(x => x.id === S.sel.special);
+      if (S.sel.fish != null && sp && SPECIAL[sp.type].solo) S.sel.special = null;
+    } else {
+      S.sel.special = S.sel.special === c.id ? null : c.id;
+      if (S.sel.special != null && SPECIAL[c.type].solo) S.sel.fish = null;
+    }
+    hint(); render(); return;
+  }
+  if (e.target.closest('#die') && pending && pending.kind === 'roll') { resolvePending(true); return; }
+  const b = e.target.closest('[data-bank]');
+  if (b && pending && pending.kind === 'pick') {
+    const id = +b.dataset.bank, i = pending.sel.indexOf(id);
+    if (i >= 0) pending.sel.splice(i, 1);
+    else if (pending.sel.length < pending.n) pending.sel.push(id);
+    if (pending.n === 1 && pending.sel.length === 1) { resolvePending(pending.sel.slice()); return; }
+    render();
+  }
+});
+function hint() {
+  const f = S.hand.h.find(x => x.id === S.sel.fish), s = S.hand.h.find(x => x.id === S.sel.special);
+  if (!f && !s) return say('Elige tu carta', IS2() ? 'Gana la pareja de la mejor carta.' : 'Puedes añadir Red o Faro a un pez.');
+  const parts = [];
+  if (f) parts.push(`${SP[f.sp].name} ${f.v}`);
+  if (s) parts.push(SPECIAL[s.type].name);
+  say(parts.join(' + '), s ? SPECIAL[s.type].help : '');
+}
+
+/* ---------------------------------------------------------------- game loop */
+async function loop(gid) {
+  render();
+  while (gid === gameId && !S.over && !S.mareaDone) {
+    await round(gid);
+    if (gid !== gameId) return;
+  }
+  if (gid === gameId && S.mareaDone) { S.mareaDone = false; await endMarea(gid); }
+}
+async function round(gid) {
+  S.res = null; S.stormed = false; hideBanner(); $('die').hidden = true; FX.hurry = false;
+  if (S.bank.length < 2) {
+    const prev = snap(); while (S.bank.length < 4 && bankDraw()); render();
+    await settle(prev, { newFromPile: true }); if (gid !== gameId) return;
+  }
+  S.phase = 'choose'; S.played = null; S.revealed = false; S.sel = { fish: null, special: null };
+  if (ONLINE) traceState('start');
+  hint(); render();
+  const hp = await localDecision('play', () => new Promise(res => { S._commit = res; }), v => ({ fish: v.fish && v.fish.id, special: v.special && v.special.id, faro: v.faro }), v => ({ fish: byId(v.fish), special: byId(v.special), faro: v.faro }));
+  if (gid !== gameId) return;
+  S.phase = 'wait';   // also after replaying a decision (reload), so the next prompt shows its own buttons
+  const remotes = {};
+  for (const p of PL()) if (p.remote) {
+    if (!remoteReady(p.id)) { S.phase = 'wait'; say(`Esperando a ${p.name}…`, 'Está eligiendo su carta.'); render(); }
+    const v = await nextRemote('play', p.id); if (gid !== gameId) return;
+    remotes[p.id] = { fish: byId(v.fish), special: byId(v.special), faro: v.faro };
+  }
+  let prev = snap();
+  S.played = { h: hp, ...remotes };
+  for (const p of PL()) if (p.ai) { S.played[p.id] = await botPlay(p.id); if (gid !== gameId) return; }
+  for (const p of PL()) { const pl = S.played[p.id]; S.hand[p.id] = S.hand[p.id].filter(c => c !== pl.fish && c !== pl.special); }
+  say('Cartas sobre la mesa…', ''); render();
+  await settle(prev, { arc: true, dur: 520 }); if (gid !== gameId) return;
+  await sleep(450); if (gid !== gameId) return;
+  S.revealed = true;
+  const flips = [...document.querySelectorAll('.seat .flip')];
+  flips.forEach((el, i) => { el.querySelector('.inner').style.transitionDelay = D(i * 130) + 'ms'; el.classList.add('up'); setTimeout(() => sfx('flip'), D(i * 130)); });
+  await sleep(750 + flips.length * 130); if (gid !== gameId) return;
+  render();
+  await resolveRound(gid);
+  if (gid !== gameId) return;
+  // played fish go to the bank, specials to the discard pile
+  prev = snap();
+  for (const p of PL()) {
+    const pl = S.played[p.id]; if (!pl || S.stormed) continue;
+    if (pl.fish && !pl.gone) S.bank.push(pl.fish);
+    if (pl.special) S.discard.push(pl.special);
+  }
+  S.played = null; S.res = null; hideBanner(); $('die').hidden = true; render();
+  await Promise.all([settle(prev, { arc: true }), flyGone(prev, () => { const p = R($('pile')); return { x: p.x - p.w * .6, y: p.y + p.h * .5, w: p.w * .6 }; }, { fade: true, dur: 520 })]);
+  if (gid !== gameId) return;
+  // refill hands from the deck
+  prev = snap();
+  while (PL().some(p => S.hand[p.id].length < HAND) && S.deck.length) {
+    for (const p of PL()) if (S.hand[p.id].length < HAND && S.deck.length) S.hand[p.id].push(S.deck.pop());
+  }
+  S.round++;
+  if (PL().some(p => !S.hand[p.id].length)) S.mareaDone = true;
+  render();
+  await settle(prev);
+}
+function commit() {
+  const f = S.hand.h.find(x => x.id === S.sel.fish), s = S.hand.h.find(x => x.id === S.sel.special);
+  if (!f && !s) return;
+  S.phase = 'wait';
+  const go = faro => { const res = S._commit; S._commit = null; if (res) res({ fish: f, special: s, faro }); };
+  if (s && s.type === 'faro') {
+    say('Faro: mueve la rosa un paso', 'Elige uno de los vientos de al lado. Nadie lo sabrá hasta revelar.');
+    ask('faro').then(w => go(w));
+  } else go(null);
+  render();
+}
+const desc = pl => [pl.fish && cname(pl.fish), pl.special && SPECIAL[pl.special.type].name].filter(Boolean).join(' + ') || 'nada';
+const teamWord = (t, tu, otro) => t === 'A' ? tu : otro;
+
+async function resolveRound(gid) {
+  const ids = PL().map(p => p.id), pl = S.played;
+  log(`Ronda ${S.round}: ` + ids.map(id => `${nm(id)} ${vb(id, 'juegas', 'juega')} ${desc(pl[id])}`).join('; ') + '.');
+  const typeOf = id => pl[id].special && pl[id].special.type;
+  // Tormenta
+  const storm = ids.filter(id => typeOf(id) === 'tormenta');
+  if (storm.length) {
+    say('¡Tormenta!', `Tormenta de ${storm.map(id => id === 'h' ? 'ti' : nm(id)).join(' y ')}: se recogen todas las cartas, se barajan con el mazo y se reparte de nuevo.`);
+    banner('¡Tormenta!', 'Todo vuelve al mazo', 'storm');
+    await fxStorm(gid); if (gid !== gameId) return;
+    // the bank, the cards on the table and every hand go back into the deck; the Tormenta played leaves the game
+    const back = S.bank.slice(); S.bank = [];
+    for (const id of ids) {
+      const c = pl[id];
+      if (c.fish) { back.push(c.fish); c.gone = true; }
+      if (c.special) { if (c.special.type === 'tormenta') S.discard.push(c.special); else back.push(c.special); }
+    }
+    for (const p of PL()) { back.push(...S.hand[p.id]); S.hand[p.id] = []; }
+    back.sort((x, y) => x.id - y.id);   // canonical order: each screen sorts its own hand, online play must shuffle identically
+    S.deck = shuffle(S.deck.concat(back));
+    for (let i = 0; i < HAND; i++) for (const p of PL()) if (S.deck.length) S.hand[p.id].push(S.deck.pop());
+    while (S.bank.length < 4 && bankDraw());
+    S.stormed = true;
+    render(); await dealIntro(gid); if (gid !== gameId) return;
+    log('Tormenta: todas las cartas vuelven al mazo y se reparte de nuevo.');
+    await ask('next'); stormOff(); return;
+  }
+  // Gaviota
+  for (const id of ids) {
+    if (typeOf(id) !== 'gaviota') continue;
+    const myT = teamOf(id), opT = other(myT);
+    const prey = S.basket[opT].filter(c => c.kind === 'fish' && c.v <= 5);
+    if (!prey.length) { log(`${nm(id)}: la gaviota no encuentra peces de 5 o menos en la cesta rival.`); say('Gaviota', `${nm(id)}: no hay peces de 5 o menos en la cesta rival.`); await sleep(1200); continue; }
+    const c = prey.reduce((m, x) => x.v > m.v ? x : m);
+    say('¡Gaviota!', `${nm(id)} ${vb(id, 'robas', 'roba')} ${cname(c)}.`);
+    await fxGull(c, opT, myT); if (gid !== gameId) return;
+    S.basket[opT].splice(S.basket[opT].indexOf(c), 1); S.basket[myT].push(c);
+    log(`Gaviota: ${nm(id)} ${vb(id, 'robas', 'roba')} ${cname(c)} de la cesta de ${SETUPS[MODE].teams[opT]}.`);
+    render(); await sleep(600); if (gid !== gameId) return;
+  }
+  // Faro
+  const faros = ids.filter(id => typeOf(id) === 'faro');
+  if (faros.length > 1) { log('Varios Faros: se anulan y el viento no cambia.'); say('Faros enfrentados', 'Se anulan entre sí: el viento no cambia.'); await sleep(1300); }
+  else if (faros.length === 1) {
+    const id = faros[0], w = pl[id].faro;
+    say('Faro', `${nm(id)} ${vb(id, 'mueves', 'mueve')} la rosa.`);
+    await fxBeam(document.querySelector(`#seat-${id} .slot:last-child`)); if (gid !== gameId) return;
+    if (w !== S.wind) await setWind(w);
+    log(`Faro: ${nm(id)} ${vb(id, 'mueves', 'mueve')} la rosa a ${WINDS[w].name}.`);
+    say('Faro', `${nm(id)} ${vb(id, 'pones', 'pone')} el viento en ${WINDS[w].name}.`); await sleep(700); if (gid !== gameId) return;
+  }
+  const W = WINDS[S.wind], tg = targets();
+  const entries = ids.map(id => ({ id, fish: pl[id].fish }));
+  let res, face = null, ruleTxt = W.rule.toLowerCase();
+  if (W.k === 'P') {
+    $('die').hidden = false; D8.mount(); $('die').classList.add('idle');
+    say('Ponent: gira la ruleta', 'Pulsa la ruleta o el botón.');
+    await ask('roll'); if (gid !== gameId) return;
+    face = DIE[rnd(DIE.length)];
+    await rollDie(face, gid); if (gid !== gameId) return;
+    if (SP[face] && !entries.some(e => e.fish && e.fish.sp === face)) {
+      log(`Ponent: la ruleta marca ${faceName(face)} y nadie la jugó: se vuelve a girar.`);
+      say(`${faceName(face)}: nadie la ha jugado`, 'Se vuelve a girar (solo una vez).');
+      $('die').classList.add('idle');
+      await ask('roll'); if (gid !== gameId) return;
+      face = DIE[rnd(DIE.length)];
+      await rollDie(face, gid); if (gid !== gameId) return;
+    }
+    res = judge(face, entries, tg);
+    ruleTxt = 'la ruleta marca ' + faceName(face).toLowerCase() + ': ' + (SP[face] ? `gana el pez más alto de ${SP[face].name.toLowerCase()}.` : face === 'T' ? 'gana la carta más alta.' : 'gana la carta más baja.');
+    log(`Ponent: la ruleta marca ${faceName(face)}.`);
+  } else res = judge(W.k, entries, tg);
+  const win = res.win;
+  if (ONLINE) traceState('judge', { win, face, wind: S.wind, keys: res.keys });
+  if (win == null) {
+    let why = res.tie && IS2() ? 'Empate entre parejas: nadie se lleva nada.' : 'Empate: nadie se lleva nada.';
+    if (W.k === 'L' && !res.tie) why = `Con Llevant cuenta solo la especie top del banco (${tg.map(k => SP[k].name.toLowerCase()).join(' o ') || 'ninguna'}). Nadie gana.`;
+    if (face && SP[face] && !res.tie) why = `La ruleta marca ${SP[face].name.toLowerCase()} y nadie ha jugado esa especie. Nadie gana; las cartas van al banco.`;
+    if (!entries.some(e => e.fish)) why = 'Nadie ha jugado un pez. Nadie gana.';
+    say('Nadie gana la ronda', why); log(why);
+    S.res = { win: null }; render(); banner('Nadie gana', res.tie ? 'Empate' : '', 'none'); sfx('lose');
+    await ask('next'); return;
+  }
+  const wT = teamOf(win), red = typeOf(win) === 'red' && pl[win].fish;
+  const n = Math.min(red ? 3 : 2, S.bank.length);
+  const title = !IS2() ? (win === 'h' ? '¡Ganas la ronda!' : `Gana ${nm(win)}`)
+    : (wT === 'A' ? (win === 'h' ? '¡Ganáis! Con tu carta' : `¡Ganáis! Con la carta de ${nm('p')}`) : `Ganan ${SETUPS[MODE].teams.B}`);
+  say(title, `${W.name}: ${ruleTxt}${red ? ' Con la Red se lleva 3 cartas.' : ''}`);
+  log(`${nm(win)} ${vb(win, 'ganas', 'gana')} la ronda con ${cname(pl[win].fish)}.`);
+  S.res = { win }; render();
+  const short = W.k === 'P' ? `Ponent · la ruleta dice ${faceName(face).toLowerCase()}` : `${W.name} · ${{ T: 'la más alta', M: 'la más baja', L: 'la especie del banco' }[W.k]}`;
+  banner(title, short, wT === 'A' ? 'win' : 'lose'); sfx(wT === 'A' ? 'win' : 'lose');
+  await sleep(1300); if (gid !== gameId) return;
+  hideBanner();
+  await takeCards(win, n, gid, red); if (gid !== gameId) return;
+  // the losing side turns the rose: whoever played the worst card on that side
+  const keyRule = W.k === 'P' ? face : W.k;
+  const losers = ids.filter(id => teamOf(id) !== wT);
+  const rot = losers.reduce((m, id) => { const k = res.keys[id] ?? -1, km = res.keys[m] ?? -1; return k < km || (k === km && rotPref(id, m)) ? id : m; });
+  if (rot === 'h') {
+    say(!IS2() ? 'Has perdido: tú giras la rosa' : 'Tu carta ha sido la peor: tú giras la rosa', 'Es obligatorio: un paso a la izquierda o a la derecha. Elige el viento que mejor te venga para remontar.');
+    const d = await localDecision('rotate', () => ask('rotate')); if (gid !== gameId) return;
+    await setWind((S.wind + d + 4) % 4);
+    log(`Giras la rosa a ${WINDS[S.wind].name}.`);
+  } else {
+    say(`${nm(rot)} gira la rosa`, `${!IS2() ? 'Ha perdido y' : 'Ha jugado la peor carta de su pareja y'} elige el viento que más le conviene…`); render(); await sleep(900); if (gid !== gameId) return;
+    const d = P(rot).remote ? await nextRemote('rotate', rot) : await botRotate(rot); if (gid !== gameId) return;
+    const sw = setWind((S.wind + d + 4) % 4);
+    say(`${nm(rot)} gira la rosa`, `Ahora sopla ${WINDS[S.wind].name}.`);
+    log(`${nm(rot)} gira la rosa a ${WINDS[S.wind].name}.`);
+    render(); await sw; await sleep(500);
+  }
+}
+async function takeCards(p, n, gid, red = false) {
+  n = Math.min(n, S.bank.length); if (!n) return;
+  let ids;
+  if (p === 'h') {
+    say(n === 1 ? 'Coge 1 carta del banco' : `Elige ${n} cartas del banco`, IS2() ? 'Van a la cesta de tu pareja.' : 'Pulsa sobre las cartas del banco.');
+    ids = await localDecision('pick', () => ask('pick', { n, sel: [] }));
+  } else if (P(p).remote && !P(p).bot) {
+    say(`${nm(p)} elige ${n} cartas del banco`, ''); render();
+    ids = await nextRemote('pick', p);
+    for (const id of ids) { const el = document.querySelector(`[data-bankid="${id}"]`); if (el) el.classList.add('aipick'); }
+    await sleep(700);
+  } else {
+    ids = S.bank.slice().sort((a, b) => b.v - a.v).slice(0, n).map(c => c.id);
+    render();
+    for (const id of ids) { const el = document.querySelector(`[data-bankid="${id}"]`); if (el) el.classList.add('aipick'); }
+    await sleep(1100);
+  }
+  if (gid !== gameId) return;
+  if (red) { await fxNet(ids); if (gid !== gameId) return; }
+  const prev = snap(), team = teamOf(p);
+  const got = S.bank.filter(c => ids.includes(c.id));
+  S.bank = S.bank.filter(c => !ids.includes(c.id));
+  S.basket[team].push(...got);
+  S.hold = { [team]: got.length };
+  log(`${nm(p)} ${vb(p, 'coges', 'coge')}: ${got.map(cname).join(', ')}.`);
+  render();
+  await Promise.all([settle(prev), flyGone(prev, () => R($('bp-' + team)), { dur: 700 })]);
+  S.hold = null; render();
+  const bp = $('bp-' + team); if (bp) bp.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: D(380) });
+}
+
+/* ---------------------------------------------------------------- end */
+async function endMarea(gid) {
+  const a = marea('A').pts, b = marea('B').pts;
+  S.history.push({ A: a, B: b });
+  if (S.marea < S.mareas) {
+    S.prev.A += a; S.prev.B += b;
+    log(`Fin de la marea ${S.marea}: ${SETUPS[MODE].teams.A} ${a}, ${SETUPS[MODE].teams.B} ${b}.`);
+    S.phase = 'between'; render();
+    say(`Fin de la marea ${S.marea}`, `Marea: ${SETUPS[MODE].teams.A} ${a} · ${SETUPS[MODE].teams.B} ${b}. Total: ${S.prev.A} · ${S.prev.B}. Se recogen todas las cartas y se reparte de nuevo.`);
+    await ask('next', { label: `Empezar marea ${S.marea + 1}` }); if (gid !== gameId) return;
+    S.marea++; $('log').prepend(Object.assign(document.createElement('li'), { textContent: `— Marea ${S.marea} —` }));
+    newMarea(gid);
+    return;
+  }
+  endGame();
+}
+function endGame() {
+  S.over = true; S.phase = 'over'; render();
+  const A = total('A'), B = total('B'), T = SETUPS[MODE].teams;
+  const youWin = A > B;
+  say(A === B ? 'Empate' : youWin ? (!IS2() ? '¡Has ganado!' : '¡Habéis ganado!') : (!IS2() ? `Gana ${T.B}` : `Ganan ${T.B}`), `${T.A} ${A} · ${T.B} ${B}`);
+  log(`Fin de la partida. ${T.A} ${A}, ${T.B} ${B}.`);
+  if (MODE === 'online') onlineOver();
+  banner(A === B ? 'Empate' : youWin ? '¡Victoria!' : 'Derrota', `${A} · ${B}`, A > B ? 'win' : A < B ? 'lose' : 'none'); sfx(youWin ? 'win' : 'lose');
+  setTimeout(() => { if (S.over) showEnd(); }, D(1400));
+}
+function showEnd() {
+  const A = total('A'), B = total('B'), T = SETUPS[MODE].teams;
+  const rows = S.history.map((h, i) => `<tr><td>${S.mareas > 1 ? `Marea ${i + 1}` : 'Valor de los peces'}</td><td>${h.A}</td><td>${h.B}</td></tr>`).join('');
+  openModal(`<h3>${A > B ? (!IS2() ? '¡Buena pesca! Has ganado' : '¡Buena pesca! Habéis ganado') : A < B ? (!IS2() ? `${T.B} gana esta vez` : `${T.B} ganan esta vez`) : 'Empate en el puerto'}</h3>
+    <table><tr><th></th><th>${T.A}</th><th>${T.B}</th></tr>${rows}
+    <tr><th>Total</th><th>${A}</th><th>${B}</th></tr></table>
+    <p class="fis-end">¿Te ha gustado? Tramuntana tendrá edición física en cartas de verdad. <a href="/#avisame" target="_blank" rel="noopener">Apúntate y te avisamos →</a></p>
+    <div class="actions" style="justify-content:flex-start"><button class="btn primary" type="button" id="again">${MODE === 'online' ? 'Volver a la sala' : 'Jugar otra vez'}</button><button class="btn" type="button" id="tomenu">Menú</button><button class="btn" type="button" id="close">Cerrar</button></div>`);
+  $('again').onclick = MODE === 'online' ? () => { closeModal(); showLobby(); } : newGame; $('close').onclick = closeModal; $('tomenu').onclick = showMenu;
+}
+function openModal(html) { $('sheet').innerHTML = html; $('modal').hidden = false; }
+function closeModal() { $('modal').hidden = true; }
+$('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function showRules() {
+  openModal(`<h3>Cómo se juega</h3>
+  <p>Juego de cartas de pesca con 6 especies (60 peces del 1 al 10) y 8 cartas especiales. Gana quien llene su cesta con más puntos. Se juega <b>1 contra 1</b> (o todos contra todos a 3) o <b>2 contra 2</b> por parejas.</p>
+  <h4>Preparación</h4>
+  <p>Cada jugador recibe 6 cartas y se ponen 4 peces boca arriba en el banco. Después se gira la aguja de la rosa: el viento donde se pare es el de la primera ronda.</p>
+  <h4>Cada ronda</h4>
+  <ul><li>Cada jugador elige una carta. Se juegan boca abajo y se revelan a la vez.</li>
+  <li>El viento de la rosa decide quién gana:
+    <ul><li><b>Tramuntana</b> (N): gana la carta más alta.</li>
+    <li><b>Migjorn</b> (S): gana la carta más baja.</li>
+    <li><b>Llevant</b> (E): gana la más alta de la especie de la carta de más valor del banco.</li>
+    <li><b>Ponent</b> (O): después de revelar se gira la ruleta de 8 casillas (6 especies, Tramuntana y Migjorn). Si sale una especie, gana el pez más alto de esa especie; si nadie la jugó, se vuelve a girar una sola vez (y si vuelve a fallar, nadie gana). Si sale Tramuntana, gana la más alta; si sale Migjorn, la más baja.</li></ul></li>
+  <li>El ganador coge 2 cartas del banco para su cesta. Después, <b>el perdedor</b> está obligado a girar la rosa un paso, a izquierda o derecha: el viento favorece a quien va en apuros.</li>
+  <li>Si hay empate, nadie coge nada. Las cartas jugadas van al banco y se roba hasta tener 6.</li></ul>
+  <h4>Cartas especiales</h4>
+  <ul><li><b>Tormenta</b> (en lugar de un pez): anula la ronda. Las cartas jugadas, las del banco y las de todas las manos se barajan con el mazo; se reparten 6 cartas a cada jugador y 4 peces al banco. La Tormenta usada sale del juego. Las cestas no se tocan.</li>
+  <li><b>Gaviota</b> (en lugar de un pez): robas un pez de valor 5 o menos de la cesta rival. Las gaviotas no pueden con peces grandes.</li>
+  <li><b>Red</b> (junto a un pez): si ganas, te llevas 3 cartas.</li>
+  <li><b>Faro</b> (junto a un pez o sola): antes de revelar mueves la rosa un paso, a izquierda o derecha. Si llega a Ponent, se gira la ruleta. Si se juegan dos o más Faros, se anulan.</li></ul>
+  <h4>Modo 2 contra 2</h4>
+  <ul><li>Las parejas se sientan cruzadas y comparten una sola cesta. Está prohibido hablar de las cartas con tu compañero.</li>
+  <li>La mejor carta da la ronda a su pareja. Si empatan cartas de parejas distintas, nadie gana; si empatan las dos de la misma pareja, gana esa pareja.</li>
+  <li>Gira la rosa el jugador de la pareja perdedora que jugó la peor carta. La Gaviota solo roba de la cesta rival.</li>
+  <li>Se juega una sola partida: gana la pareja que sume más en su cesta.</li></ul>
+  <h4>Final</h4>
+  <p>Cuando se acaba el mazo se juegan las cartas que quedan en la mano; la marea termina cuando alguien se queda sin cartas. Cada pez de tu cesta vale su número: gana quien sume más.</p>
+  <div class="actions" style="justify-content:flex-start"><button class="btn primary" type="button" id="close">Entendido</button></div>`);
+  $('close').onclick = closeModal;
+}
+$('btn-rules').onclick = showRules;
+$('menu-rules').onclick = showRules;
+$('btn-new').onclick = newGame;
+$('mode-online').onclick = () => showLobby();
+$('btn-menu').onclick = showMenu;
+$('mode-1v1').onclick = () => startMode('1v1');
+$('mode-2v2').onclick = () => startMode('2v2');
+// menu illustrations
+const miniCard = c => `<div class="mini">${cardSVG(c)}</div>`;
+$('vs-1v1').innerHTML = miniCard({ kind: 'fish', sp: 'pulpo', v: 7 }) + '<b>VS</b>' + miniCard({ kind: 'fish', sp: 'cangrejo', v: 3 });
+$('vs-online').innerHTML = miniCard({ kind: 'fish', sp: 'caballito', v: 8 }) + '<b>VS</b>' + miniCard({ kind: 'fish', sp: 'estrella', v: 6 });
+$('vs-2v2').innerHTML = miniCard({ kind: 'fish', sp: 'sardina', v: 9 }) + miniCard({ kind: 'fish', sp: 'tortuga', v: 2 }) + '<b>VS</b>' + miniCard({ kind: 'fish', sp: 'pulpo', v: 5 }) + miniCard({ kind: 'fish', sp: 'cangrejo', v: 10 });
+drawRose();
+
+
+(() => { const s = new URLSearchParams(location.search).get('sala'); if (s) showLobby(s); else if (location.hash === '#amigos') showLobby(); else if (location.hash === '#ia') startMode('1v1'); else if (location.hash === '#ia2') startMode('2v2'); })();
+</script>
